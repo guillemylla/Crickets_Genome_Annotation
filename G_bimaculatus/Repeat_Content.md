@@ -1,6 +1,6 @@
 # __Gryllus bimaculatus__ Repetitive content masking GBI V3
 
-I will describe here how to create the repeat library for *Gryllus bimaculatus* genome v3.
+I will describe here how to create the repeat library for *Gryllus bimaculatus*.
 
 ## Requirments
  
@@ -67,7 +67,7 @@ echo "Set vars"
 
 cd ~/LTRs/genometools-1.5.9
 
-GenomeFasta="/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
+GenomeFasta="Gbimaculatus_Gap_filled.fasta"
 
 echo "Run suffixerator"
 
@@ -123,16 +123,16 @@ module load python/3.6.3-fasrc02
 
 
 echo "Load python-conda environment"
-source activate /n/home09/gylla/.conda/envs/MITEtrackerenvironment
+source activate MITEtrackerenvironment
 echo "Activated"
 
-cd /n/home09/gylla/Software/MITE-Tracker
+cd MITE-Tracker
 
 
 
 echo "Run MITE tracker"
 
-GenomeFasta="/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
+GenomeFasta="~/Gbimaculatus_Gap_filled.fasta"
 
 python -m MITETracker.py -g $GenomeFasta -w 10 -j GbiV3_Mitetracker
 
@@ -181,7 +181,7 @@ module load ncbi-rmblastn/2.2.28-fasrc01
 ## load my CONDA environment
 source activate /n/home09/gylla/.conda/envs/my_root
 echo "Set vars"
-GenomeFasta="/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
+GenomeFasta="~/Gbimaculatus_Gap_filled.fasta"
 cd ~/RepeatModeler
 echo "Run builddatabase"
 BuildDatabase -name GbiV3database -engine ncbi $GenomeFasta
@@ -255,7 +255,7 @@ mkdir GbiV3_splitted
 
 cd GbiV3_splitted
 
-faSplit sequence /n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta  10 GbiV3_part
+faSplit sequence ~/Gbimaculatus_Gap_filled.fasta  10 GbiV3_part
 
 ```
 
@@ -336,7 +336,7 @@ wc -l GbiV3_joinparts.fa.TPSI.allHits.gff3
 #60814
 
 module load bedtools2/2.26.0-fasrc01
-GenomeFasta="/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
+GenomeFasta="~/Gbimaculatus_Gap_filled.fasta"
 bedtools getfasta -name -s -bed GbiV3_joinparts.fa.TPSI.allHits.gff3   -fi $GenomeFasta -fo GbiV3_joinparts.TPSI.allHits.fa
 
  ```
@@ -544,7 +544,7 @@ MAKERE was not producing the repeat content report... I run RepeatMasker first a
 
 
 ```bash
-GenomeFasta="/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
+GenomeFasta="~/Gbimaculatus_Gap_filled.fasta"
 RepLib="~/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa"
 
 cd ~/RepeatMasker

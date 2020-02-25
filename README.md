@@ -15,6 +15,7 @@
 
 - Pipeline based on the multiple online sources. Most relevant:
 	 - [MAKER tutorial](http://weatherby.genetics.utah.edu/MAKER/wiki/index.php/MAKER_Tutorial_for_WGS_Assembly_and_Annotation_Winter_School_2018)
+	 - [MAKER turorial to create custom repeat libaries](http://weatherby.genetics.utah.edu/MAKER/wiki/index.php/Repeat_Library_Construction-Advanced)
 	 - Daren Card pipline for annotating the *Boa constrictor* genome (https://gist.github.com/darencard/bb1001ac1532dd4225b030cf0cd61ce2)
 
 - Schematic representation of the *G. bimaculatus* genoem annotation:
