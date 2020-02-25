@@ -156,42 +156,7 @@ cp /n/home09/gylla/Software/MITE-Tracker/results/GbiV3_Mitetracker/all.fasta .
  
 ### 3. RepeatModeler
 
-I thought Repeatmodeler works on Odyssey, but I'm not sure... In one output line says "NOTE: RepeatScout did not return any models." while running in Hipergator, the RepeatScout works good and RepeatModeler processes the output. In addition, Hipergator finishes in ~24h, in odyssey, never finishes...
 
-*~/RepeatModeler*
-
-The sbatch file in Odyssey that did not finish was:
-
-```bash
-#!/bin/sh
-#SBATCH --job-name=GbiRepeatModeler    # Job name
-#SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH -n 50                # Number of cores
-#SBATCH -N 1                # Ensure that all cores are on one machine
-#SBATCH -p general   # Partition to submit toshared
-#SBATCH --mem=70gb                     # Job memory request
-#SBATCH --time=7-00:00               # Time limit days-hrs:min
-#SBATCH -o out_Repeatmodeler_%j.log   # Standard output and error log
-#SBATCH -e err_Repeatmodeler_%j.err   # Standard output and error log
-pwd; hostname; date
-echo "Load Modules"
-module load Anaconda/5.0.1-fasrc02
-module load RepeatMasker/4.0.5-fasrc05
-module load trf/404-fasrc01
-module load ncbi-rmblastn/2.2.28-fasrc01
-## load my CONDA environment
-source activate /n/home09/gylla/.conda/envs/my_root
-echo "Set vars"
-GenomeFasta="~/Gbimaculatus_Gap_filled.fasta"
-cd ~/RepeatModeler
-echo "Run builddatabase"
-BuildDatabase -name GbiV3database -engine ncbi $GenomeFasta
-echo "Run repeatModeler"
-RepeatModeler -pa $SLURM_NTASKS -database GbiV3database
-echo "Done!"
-source deactivate
-pwd; hostname; date
-```
 
 
  ```bash

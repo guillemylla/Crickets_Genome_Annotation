@@ -8,7 +8,7 @@
 	- Functional annotations
 
 
-- This pipeline is based on the pipline I used for the cricket *Gryllus bimaculatus*. **Please see the [*G. bimaculatus* pipeline](https://github.com/guillemylla/Crickets_Genome_Annotation_Public/tree/master/G_bimaculatus) for more metodological details **.
+- This pipeline is based on the pipline I used for the cricket *Gryllus bimaculatus*. **Please see the [*G. bimaculatus* pipeline](https://github.com/guillemylla/Crickets_Genome_Annotation_Public/tree/master/G_bimaculatus) for more metodological details**.
 
 - Schematic representation of the *L. kohalensis* annotation pipeline.
 
