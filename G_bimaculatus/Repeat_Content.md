@@ -1,6 +1,6 @@
-# __Gryllus bimaculatus__ Repetitive content masking GBI V3
+# __Gryllus bimaculatus__ Repetitive Content Masking 
 
-I will describe here how to create the repeat library for *Gryllus bimaculatus*.
+Here, I describe how I constructed a repeat library for *G. bimaculatus* and used to mask the genome.
 
 ## Requirments
  
@@ -10,7 +10,9 @@ I will describe here how to create the repeat library for *Gryllus bimaculatus*.
 	* RepeatModeler (de novo predicts repeats)
 	* Transposons PSI
 	* SINE database
-	* RepeatMasker (RepBase)
+	* RepBase
+
+* RepeatMasker
  
  
 ## Repetitive elements library
@@ -164,7 +166,6 @@ The sbatch file in Odyssey that did not finish was:
 #!/bin/sh
 #SBATCH --job-name=GbiRepeatModeler    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=guillem_ylla@fas.harvard.edu     # Where to send mail	
 #SBATCH -n 50                # Number of cores
 #SBATCH -N 1                # Ensure that all cores are on one machine
 #SBATCH -p general   # Partition to submit toshared
@@ -192,20 +193,11 @@ source deactivate
 pwd; hostname; date
 ```
 
-Transfering genome to Hipergator
-
-```bash
-scp Gbimaculatus_Gap_filled.fasta guillemyllabou@hpg.rc.ufl.edu:~/Gbiv3/
-```
-
-
-Hipergator Sbatch */home/guillemyllabou/Gbiv3*:
 
  ```bash
 #!/bin/sh
 #SBATCH --job-name=runClass    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=guillem_ylla@fas.harvard.edu     # Where to send mail	
 #SBATCH -n 30               # Number of cores
 #SBATCH -N 1                # Ensure that all cores are on one machine
 #SBATCH --mem=70gb                     # Job memory request
@@ -214,26 +206,17 @@ Hipergator Sbatch */home/guillemyllabou/Gbiv3*:
 #SBATCH -e error_class_%j.err   # Standard output and error log
 pwd; hostname; date
 module load repeatmodeler/1.0.8
-echo "Set vars"
-cd /home/guillemyllabou/Gbiv3
+
 GenomeFasta="Gbimaculatus_Gap_filled.fasta"
 BuildDatabase -name GbiV3database -engine ncbi $GenomeFasta
+
 echo "Run repeatModeler"
 RepeatModeler -pa $SLURM_NTASKS -database GbiV3database 
 echo "Done!"
+
 pwd; hostname; date
 ```
- Getting the results:
- 
- ```bash
- mkdir Hipergator_ouput
- cd ~/RepeatModeler/Hipergator_ouput
- 
- scp guillemyllabou@hpg.rc.ufl.edu:/home/guillemyllabou/Gbiv3/out_class_33730799.log  .
- scp guillemyllabou@hpg.rc.ufl.edu:/home/guillemyllabou/Gbiv3/error_class_33730799.err .
- scp guillemyllabou@hpg.rc.ufl.edu:/home/guillemyllabou/Gbiv3/RM_18848.MonMar181110552019/consensi.fa.classified .
- 
- ```
+
 
 
 
@@ -265,7 +248,6 @@ Create the Job array
 #!/bin/sh
 #SBATCH --job-name=GbiTransposonPSI    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=guillem_ylla@fas.harvard.edu     # Where to send mail	
 #SBATCH -n 10                # Number of cores
 #SBATCH -N 1                # Ensure that all cores are on one machine
 #SBATCH -p shared   # Partition to submit toshared
@@ -276,14 +258,14 @@ Create the Job array
 
 module load Anaconda/5.0.1-fasrc02
 
-source activate /n/home09/gylla/.conda/envs/MITEtrackerenvironment
+source activate MITEtrackerenvironment
 
 cd ~/TransposonPSI
 
 ##from 00 to 09
 GenomeFasta=~/TransposonPSI/GbiV3_splitted/GbiV3_part0"${SLURM_ARRAY_TASK_ID}".fa
 
-perl /n/home09/gylla/Software/TransposonPSI_08222010/transposonPSI.pl $GenomeFasta nuc
+perl transposonPSI.pl $GenomeFasta nuc
 
 source deactivate
 
@@ -353,8 +335,8 @@ cd ~/Custom_Library
 
 # Extract taxon-specific repeats from RepeatMasker database (RepBase)
 module load Anaconda/5.0.1-fasrc02
-source activate /n/home09/gylla/.conda/envs/CondarepeatMasker
-perl /n/helmod/apps/centos7/Core/RepeatMasker/4.0.5-fasrc05/util/queryRepeatDatabase.pl -clade insecta  > MakeRepeatBaseInsecta.fa
+source activate CondarepeatMasker
+perl queryRepeatDatabase.pl -clade insecta  > MakeRepeatBaseInsecta.fa
 ## RepeatMaskerDB
 tail -n+2 MakeRepeatBaseInsecta.fa > RepeatMaskerInsecta.lib
 rm MakeRepeatBaseInsecta.fa
@@ -370,7 +352,7 @@ cp ../MITEs/all.fasta  MiteTracker.lib
 ##TransposonPSI
 cp  ~/TransposonPSI/GbiV3_joinparts.TPSI.allHits.fa TransposonPSI_GBIv3.lib
 ## RepeatModeler
-cp ~/RepeatModeler/Hipergator_ouput/consensi.fa.classified RepeatModeler_GBIv3consensi.fa.classified.lib
+cp ~/RepeatModeler/consensi.fa.classified RepeatModeler_GBIv3consensi.fa.classified.lib
 
 ```
  

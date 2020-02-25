@@ -3,7 +3,7 @@
 
 - The annotation pipline is split in 3 parts:
 
-	- [Repeat_Content.md](Repeat_Content.md): To create a  custom repeat library and mask repeats with RepeatMasker. 
+	- [Repeat_Content.md](Repeat_Content.md): To construct a custom  repeat library to mask repeats with RepeatMasker. 
 	- Protein coding gene annotation
 	- Functional annotations
 
