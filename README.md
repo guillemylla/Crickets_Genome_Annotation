@@ -18,6 +18,8 @@
 	 - [MAKER turorial to create custom repeat libaries](http://weatherby.genetics.utah.edu/MAKER/wiki/index.php/Repeat_Library_Construction-Advanced)
 	 - Daren Card pipline for annotating the *Boa constrictor* genome (https://gist.github.com/darencard/bb1001ac1532dd4225b030cf0cd61ce2)
 
+- The annotation pipline used in both crickets is very similar. If you would like to use it for any other species, I recommend you to check the [*G. bimaculatus*](https://github.com/guillemylla/Crickets_Genome_Annotation_Public/tree/master/G_bimaculatus) one, since the scripts are better explained.
+
 - Schematic representation of the *G. bimaculatus* genoem annotation:
 
 ![G. bimaculatus pipline](G_bimaculatus/Supplementary_Figure_1_PipelineGbi.png)
