@@ -2,7 +2,11 @@
 
 - [Guillem Ylla](https://guillemylla.github.io/), Ph.D.
 
-- Compilation of scripts used for the *de novo*  annotating the genomes of the crickets *Gryllus bimaculatus* and *Laupala kohalensis*.
+- This repository includes  
+ 1- Compilation of scripts used for the *de novo*  annotating the genomes of the crickets *Gryllus bimaculatus* and *Laupala kohalensis*.
+ 2- Annotation files generated for both cricket species.
+ 3- **?????????????** scritps used to analyze these genomes and generate the results for: ....  **??????????**
+
 
 - My pipline involves:
 
