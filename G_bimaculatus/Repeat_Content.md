@@ -27,8 +27,8 @@ mkdir Custom_Library
 
 ### 1.  LTRs (long terminal repeat) retrotransposons 
 
-	- 1.1. LTRharvest: to collect LTRtransposons (http://genometools.org/documents/ltrharvest.pdf)
-	- 1.2. LTRdigest: to filter LTRharvest results (http://genometools.org/documents/ltrdigest.pdf)
+1.1. LTRharvest: to collect LTRtransposons (http://genometools.org/documents/ltrharvest.pdf)
+1.2. LTRdigest: to filter LTRharvest results (http://genometools.org/documents/ltrdigest.pdf)
 	
 Prepare LTRharvest and LTRdigest
 
