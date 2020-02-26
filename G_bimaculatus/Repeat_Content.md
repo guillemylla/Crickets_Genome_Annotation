@@ -459,9 +459,9 @@ awk -F "\t" '{print $1,$7}' Blast_out.txt  | sort | uniq | grep -i -v "transposo
 #68
 
 ## Filter Cutsom library
-faSomeRecords -exclude CombinedLibrary.lib.minlen50.nr.classified.fa Unknowns_with_Port_hit.txt CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
+faSomeRecords -exclude CombinedLibrary.lib.minlen50.nr.classified.fa Unknowns_with_Port_hit.txt Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
 
-grep -c ">" CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
+grep -c ">" Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
 # 87228 (87296-68=767)
 
 
@@ -470,17 +470,17 @@ wc -l Unknowns_with_Port_hit.txt
 #68
 grep -c ">" CombinedLibrary.lib.minlen50.nr.classified.fa
 #87296
-grep -c ">" CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
+grep -c ">" Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
 #87228
 
-cp  CombinedLibrary.lib.minlen50.nr.classified.filtered.fa ../
+cp  Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa ../
 ```
 
- The final custom repeat library is:  CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
+ The final custom repeat library is:  Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
 
-Path: "*~/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa*"
+Path: "*~/Custom_Library/Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa*"
 
-Backup: *~/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa*
+Backup: *~/Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa*
 
 
 
@@ -492,7 +492,7 @@ MAKERE was not producing the repeat content report... I run RepeatMasker first a
 
 ```bash
 GenomeFasta="~/Gbimaculatus_Gap_filled.fasta"
-RepLib="~/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa"
+RepLib="~/Custom_Library/Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa"
 
 cd ~/RepeatMasker
 
@@ -534,14 +534,14 @@ scp -r gylla@odyssey.rc.fas.harvard.edu:~/Sbatch_cripts_bkup .
 Download custom repeat library in local and later upload it to github using "git lfs":
 
 ```bash
-scp -r gylla@odyssey.rc.fas.harvard.edu:~/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa .
+scp -r gylla@odyssey.rc.fas.harvard.edu:~/Custom_Library/Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa .
 
 # git lfs instructions
 ##Local
 git lfs track "*.fa"
 git add .gitattributes
 git commit -m "track *.fa files using Git LFS"
-git add CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
+git add Gbi_Rep_CombinedLibrary.lib.minlen50.nr.classified.filtered.fa
 git commit -m "GBI Custom Repeat library"
 git push origin master
 ```

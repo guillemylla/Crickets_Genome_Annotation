@@ -1,4 +1,4 @@
-# Crickets Genomes Annotation
+# Crickets Genome Annotation
 
 - [Guillem Ylla](https://guillemylla.github.io/), Ph.D.
 
