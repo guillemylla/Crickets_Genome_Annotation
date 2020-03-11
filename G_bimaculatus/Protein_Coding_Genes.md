@@ -152,11 +152,6 @@ hisat2 -x $indexname  \
 
 
 
-
-
-#run_stringtie_RNAseqEgg.sbatch
-
-#run_stringtie_Embryo.sbatch
 ```
 
  
