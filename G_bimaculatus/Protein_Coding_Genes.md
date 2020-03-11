@@ -604,12 +604,6 @@ pwd; hostname; date
 
 
 ```
-
-**Warning:** I think that node SHARED is faser than general!! But in Odyssey they recommend to use GENERAL for MPI.
-I had to restart MAker2 at least 3 times... Finally ran good at Sahred (In general was taking forever...)
-
-**Trick:** I was ruuning it in 100cpus (though for some reason I thing only ~40-50 were actually working). With 100 cpus was entering faster than 200, but itwas taking too long to run. So, I launch it again setting 200 CPUS but in the 1st SBATCH command I scancel the previous job. So While the 200 cpus was in queue was running with 100 cous. And wheen 200cpus entered, kill the 100 and continued with 200...
-
 Collect maker round 2 output  as sbatch script.
 
 ```bash
