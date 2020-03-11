@@ -769,114 +769,7 @@ I can use BUSCO to check how complete are my annotations.
 Quality of the transcriptome after each Maker round (version 3).
 
 
-First, I count number of codying genes genes and mRNAs: 
-
 ```bash
-#####################
-###### Round 1 ######
-#####################
-cd Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1
-
-### Genes ###
-## WARNING: tRNAs are annotated as "gene"
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.trnascan.transcripts.fasta
-#4453
-grep -P "maker\tgene" Gbimaculatus_Gap_filled.all.gff | grep -c "trnascan"
-#4453
-
-grep -c -P "maker\tgene" Gbimaculatus_Gap_filled.all.gff 
-#24308
-grep -P "maker\tgene" Gbimaculatus_Gap_filled.all.gff | grep -v "trnascan" | wc -l
-#19855 (that's it, 24308-4453trnas=19855 codying genes)
-
-### mRNAs ###
-grep -c -P "maker\tmRNA" Gbimaculatus_Gap_filled.all.gff 
-#20379
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.transcripts.fasta
-#20379
-### Proteins ###
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.proteins.fasta
-#20379
-
-
-#####################
-###### Round 2 ######
-#####################
-#After these 2nd run, the Maker_GbiV3_v1_r1.onlyGenes.gff contain some repeaeted features (like mRNAs)... i don-t know exatly why, but seems could have been a problem with stop/start the maker...
-
-cd Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2
-
-## I found out that  the .gff contains several duplicated lines
-### I can-t really filte rduplicated lines on Gbimaculatus_Gap_filled.all.gff, because i could e,liminate some of the fasta lines...
-### i can filter the  onlyGenes.gff
-wc -l Maker_GbiV3_v1_r2.onlyGenes.gff
-#529141
-sort Maker_GbiV3_v1_r2.onlyGenes.gff | uniq |  wc -l
-#3463191  ## Problem, It looses the order!!!!
-
-## Keeps the order!!
-awk '!x[$0]++' Maker_GbiV3_v1_r2.onlyGenes.gff | wc -l
-#463191
-
-#### Remove repeated lines!
-awk '!x[$0]++' Maker_GbiV3_v1_r2.onlyGenes.gff > Maker_GbiV3_v1_r2.2.onlyGenes.gff
-#463191
-
-
-### Genes ###
-## WARNING: tRNAs are annotated as "gene"
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.trnascan.transcripts.fasta
-#4388
-grep -P "maker\tgene" Maker_GbiV3_v1_r2.2.onlyGenes.gff | grep -c "trnascan"
-#4386
-
-grep -c -P "maker\tgene" Maker_GbiV3_v1_r2.2.onlyGenes.gff
-#22039
-grep -P "maker\tgene" Maker_GbiV3_v1_r2.2.onlyGenes.gff | grep -v "trnascan" | wc -l
-# 17653 (that's it, 22039-4386 trnas=19855 codying genes)
-
-### mRNAs ###
-grep -c -P "maker\tmRNA" Maker_GbiV3_v1_r2.2.onlyGenes.gff
-#28348
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.transcripts.fasta
-#28705
-### Proteins ###
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.proteins.fasta
-#28705
-
-
-
-#####################
-###### Round 3 ######
-#####################
-cd Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round3
-
-
-### Genes ###
-## WARNING: tRNAs are annotated as "gene"
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.trnascan.transcripts.fasta
-#4453
-grep -P "maker\tgene" Maker_GbiV3_v1_r3.onlyGenes.gff | grep -c "trnascan"
-#4453
-
-grep -c -P "maker\tgene" Maker_GbiV3_v1_r3.onlyGenes.gff
-#22324
-grep -P "maker\tgene" Maker_GbiV3_v1_r3.onlyGenes.gff | grep -v "trnascan" | wc -l
-# 17871 (that's it, 22324-4453 trnas=17871 codying genes)
-
-### mRNAs ###
-grep -c -P "maker\tmRNA" Maker_GbiV3_v1_r3.onlyGenes.gff
-#28529
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.transcripts.fasta
-#28529
-### Proteins ###
-grep -c ">" Gbimaculatus_Gap_filled.all.maker.proteins.fasta
-#28529
-```
-
-
-```bash
-## All the following commands were ran individual sbatch scripts.
 #### Round 1
 cd Annotations_Quality/Maker_GbiV3_v1_round1_completed
 
@@ -898,21 +791,9 @@ Fasta="Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round3/Gbimaculatus_Gap_filled.all.ma
 outfilename="Busco_maker_v1r2"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS -i $Fasta  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m tran
 
-
 ### comapre
 
 ## Buscos missing in Round 2 but present in Round 1
  grep -v -f ../Maker_GbiV3_v1_round1_completed/run_Busco_maker_v1r1/missing_busco_list_Busco_maker_v1r1.tsv  run_Busco_maker_v1r2/missing_busco_list_Busco_maker_v1r2.tsv
-
-```
-
-
-
------------------------------
-Backup SLURM scripts
-
-```bash
-#find ../ -type f -name *.sbatch -exec cp {} . \;
-scp -r gylla@odyssey.rc.fas.harvard.edu:GBI_Genome_v3/Bkup_Scripts .
 
 ```
