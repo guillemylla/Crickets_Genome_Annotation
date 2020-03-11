@@ -1,8 +1,3 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
 # Annotation of *Gryllus bimaculatus* protein-coding genes V3
 
 Protein coding genes of the *Gryllus bimaculatus* genome version V3. 
