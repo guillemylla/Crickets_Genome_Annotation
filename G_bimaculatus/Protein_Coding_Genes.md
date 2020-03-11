@@ -18,7 +18,6 @@ Protein coding genes of the *Gryllus bimaculatus* genome version V3.
  Run as sbatch jobs
 
 #Insect
-#/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Busco_Analysis/Busco_Genome/run_Busco_v3_insect.sbatch
 Genome="~/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
 outfilename="BuscoInsecta_GBIv3"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS --long -i $Genome  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m geno
