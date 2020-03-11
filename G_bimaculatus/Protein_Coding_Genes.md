@@ -18,13 +18,12 @@ Protein coding genes of the *Gryllus bimaculatus* genome version V3.
  Run as sbatch jobs
 
 #Insect
-Genome="~/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
+Genome="Gbimaculatus_Gap_filled.fasta"
 outfilename="BuscoInsecta_GBIv3"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS --long -i $Genome  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m geno
 
 #Arthropod 
-#/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Busco_Analysis/Busco_Genomerun_Busco_v3_insect.sbatch
-Genome="~/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
+Genome="Gbimaculatus_Gap_filled.fasta"
 outfilename="BuscoArthropoda_GBIv3"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS --long -i $Genome  -o $outfilename -l ~/busco/datasets/arthropoda_odb9 -m geno
 
@@ -39,18 +38,12 @@ python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS --long -i $Genome  -o $o
  A *de-novo* gene predictor in self-training mode. (full GeneMark installation on Annotation_v1)
  
 
-```bash
-## make GeneMark work on Odyssey
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/GeneMark
-cp -r /n/scratchlfs/extavour_lab/gylla/Annotation_v1/Protein_coding_genes/GeneMark/gmes_petap/ .
-```
 Run Gmark as sbatch script (*run_GeneMArk.sbatch*)
 
 ```bash
 #!/bin/sh
 #SBATCH --job-name=runGeneMark   # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=guillem_ylla@fas.harvard.edu     # Where to send mail
 #SBATCH -n 20               # Number of cores
 #SBATCH -N 1                # Ensure that all cores are on one machine
 #SBATCH -p shared   # Partition to submit toshared
@@ -65,11 +58,11 @@ echo "Load modules"
 module load perl-modules/5.26.1-fasrc01
 echo "Modules loaded"
 
-cd "/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/GeneMark"
+cd "GeneMark"
 
 echo "Run GeneMark"
 
-Genome="/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta"
+Genome="Gbimaculatus_Gap_filled.fasta"
 
 
 perl gmes_petap/gmes_petap.pl --ES \
@@ -87,15 +80,9 @@ date
 
 ## Repteat  Content
 
-The Repeat content library was produced following the pipline described here: https://github.com/guillemylla/Gryllus_genome_annotation/tree/master/GBI_Genome_v3/Repetitive_content
+The Repeat content library was produced following the pipline described here [Repeat_Content.md](Repeat_Content.md).
 
-``` bash
-# I copy the final library from 
-# 
-# cp 
-# 
-#  **WARNING:** Maker does not like the repeatmasker gff3 file... I will pass the whole library.
-```
+
 
 ## Prepare RNA-seq Hisat2
 
@@ -103,12 +90,12 @@ The Repeat content library was produced following the pipline described here: ht
 Run Hisat2 with --dta option : *" --dta== --downstream-transcriptome-assembly. HISAT2 provides options for transcript assemblers (e.g., StringTie and Cufflinks) to work better with the alignment from HISAT2 (see options such as --dta and --dta-cufflinks"*.
  
 
-As SBATCH scripts at: */n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi*
+As SBATCH scripts at: *RNA_seq_Gbi*
 
 ```bash
-#run_hisat_joinedAusten.sbatch
-indexname="/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/GbV3Hisat"
-output="/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/JoinedAustenHisatV3.sam"
+#run_hisat_joinedf.sbatch
+indexname="GbV3Hisat"
+output="JoinedRNAseqEggHisatV3.sam"
 R1="All the fastq files"
 R2="All fastqfiles same order R1"
 hisat2 -x $indexname  \
@@ -136,8 +123,8 @@ hisat2 -x $indexname  \
 # 66.24% overall alignment rate
 
 #run_hisat_joinedEmbryo.sbatch
-indexname="/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/GbV3Hisat"
-output="/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/JoinedEmbryoHisat.sam"
+indexname="GbV3Hisat"
+output="RNA_seq_Gbi/JoinedEmbryoHisat.sam"
 R1="All the fastq files"
 R2="All fastqfiles same order R1"
 hisat2 -x $indexname  \
@@ -167,7 +154,7 @@ hisat2 -x $indexname  \
 
 
 
-#run_stringtie_Austen.sbatch
+#run_stringtie_RNAseqEgg.sbatch
 
 #run_stringtie_Embryo.sbatch
 ```
@@ -175,18 +162,18 @@ hisat2 -x $indexname  \
  
 ## ESTs / assembled transcriptomes
 
-  * 1- I will used the previously assembled transcriptome in the lab and located at */n/extavour_lab/Lab/Everyone/transcriptomes/Assemblies/Gryllus_bimaculatus/Asgard_version/Gryllus.fa*
+  * 1- I will used the previously assembled transcriptome in the lab and located at */Asgard_version/Gryllus.fa*
 
-  * 2- ESTS from NCBI. I retrieevd all the "Nucleotide" sequences form *G. bimaculatus* from ncbi. Search select "Nucelotide" and search  "Gryllus bimaculatus"[porgn:__txid6999] ". I got 43,595 sequences. They include the contigs from a Noji's trancriptome of Nymphs... I downloaded the 43,595 sequences through the NCBI webpage. And Locted at: *"/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta"*.
+  * 2- ESTS from NCBI. I retrieevd all the "Nucleotide" sequences form *G. bimaculatus* from ncbi. Search select "Nucelotide" and search  "Gryllus bimaculatus"[porgn:__txid6999] ". I got 43,595 sequences. They include the contigs from a Noji's trancriptome of Nymphs... I downloaded the 43,595 sequences through the NCBI webpage. And Locted at: *"Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta"*.
 
-  * 3- I have found a recently published transcriptome assembly of prothoracic ganglion (https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0199070). And accessible from:PRJNA376023. */n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt*
+  * 3- I have found a recently published transcriptome assembly of prothoracic ganglion (https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0199070). And accessible from:PRJNA376023. *Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt*
   
 
 * Details on data downloading and processing at *Annotation_v1*
  
 ## ESTs *Laupala kohalensis* 
 
-Maker accepts ESTs from closely related species that are searched within the genome by tblastx. To that end, I downloaded 14,391  ESTs from *Laupala kohalensis* available at NCBI-nucleotide. Most of these EST come from this paper https://bmcgenomics.biomedcentral.com/articles/10.1186/1471-2164-8-109. */n/scratchlfs/extavour_lab/gylla/Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta *
+Maker accepts ESTs from closely related species that are searched within the genome by tblastx. To that end, I downloaded 14,391  ESTs from *Laupala kohalensis* available at NCBI-nucleotide. Most of these EST come from this paper https://bmcgenomics.biomedcentral.com/articles/10.1186/1471-2164-8-109. *Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta *
 
 * Details about processing *Annotation_v1* 
 
@@ -194,20 +181,20 @@ Maker accepts ESTs from closely related species that are searched within the gen
 
 Maker will use protein database to BlastX against the genome and identify protein coding genes. To that end, I will use the Insect rvised uniprot/Swiss-Prot database.
 
-*/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta*
+*Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta*
 
 ## Prepare First MAKER cycle (v3)
 
 Details about installation at *Annotation_v1* 
 
 ```bash
-cp -r /n/scratchlfs/extavour_lab/gylla/Annotation_v1/Protein_coding_genes/Maker/Maker_v3/maker/ .
+cp -r Annotation_v1/Protein_coding_genes/Maker/Maker_v3/maker/ .
 
-cp -r /n/scratchlfs/extavour_lab/gylla/Annotation_v1/Protein_coding_genes/Maker/Maker_v3/config/ .
+cp -r Annotation_v1/Protein_coding_genes/Maker/Maker_v3/config/ .
 
 ## I need to add the AUgustus models created by Busco for Genome V3
 
-cp -r /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Busco_Analysis/Busco_Genome/run_BuscoInsecta_GBIv3/augustus_output/retraining_parameters/ config/species/GBimaculatusV3
+cp -r GBI_Genome_v3/Busco_Analysis/Busco_Genome/run_BuscoInsecta_GBIv3/augustus_output/retraining_parameters/ config/species/GBimaculatusV3
 # rename files
 cd config/species/GBimaculatusV3
 
@@ -223,7 +210,7 @@ On the maker_opts.ctl we put the Augustus species *"GBimaculatusV3"* and we indi
 
 ```bash
 ## Must remember to put the follwoing line in the sbatch file:
-export AUGUSTUS_CONFIG_PATH=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/config
+export AUGUSTUS_CONFIG_PATH=Maker/Maker_GbiV3_v1/config
 
 ````
  
@@ -257,17 +244,17 @@ This creates the files:
  For the 1st round of maker I edited the maker_opts.ctl  lines:
  
 * Genome
- * genome=/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta
+ * genome=Gbimaculatus_Gap_filled.fasta
 * ESTEvidence
-   * est=/n/extavour_lab/Lab/Everyone/transcriptomes/Assemblies/Gryllus_bimaculatus/Asgard_version/Gryllus.fa,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta
-  * altest=/n/scratchlfs/extavour_lab/gylla/Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta #EST/cDNA sequence file in fasta format from an alternate organism
-  * est_gff =/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/stringtie_JoinedAustenHisat_sorted.gff3,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/stringtieout_JoinedEmbryoHisat_sorted.gff3
+   * est=/Asgard_version/Gryllus.fa,Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt,Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta
+  * altest=Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta #EST/cDNA sequence file in fasta format from an alternate organism
+  * est_gff =RNA_seq_Gbi/stringtie_JoinedRNAseqEggHisat_sorted.gff3,RNA_seq_Gbi/stringtieout_JoinedEmbryoHisat_sorted.gff3
 * Protein Homology Evidence
-  * protein=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta
+  * protein=Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta
 * Repeat Masking section 
-  * rmlib=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa  #provide an organism specific repeat library in fasta format for RepeatMasker
+  * rmlib=GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa  #provide an organism specific repeat library in fasta format for RepeatMasker
 * Gene Prediction
-  * gmhmm=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/GeneMark/output/gmhmm.mod
+  * gmhmm=GeneMark/output/gmhmm.mod
   * augustus_species=GBimaculatusV3 #Maker_GbiV3_v1/config/species/GBimaculatusV3/
   * est2genome=1 !!!!!! *This option allows you to make gene models directly from the transcript evidence. This option is useful when you don't have a gene predictor trained on your organism and ere is not a training file available for a closely related organism. The gene models from this option are going to be fragmented and incomplete because of the nature of transcript data, especial mRNA-Seq. These gene models are most useful for first round training of gene finders. One you have a trained gene predictor turn this option off. *
   * protein2genome=1 !!!!!! *Similar to est2genome this option will make gene models out of protein data. Like est2genome this option is most useful for training gene predictors. *
@@ -284,7 +271,7 @@ The  maker_opts.ctl  file looks like this:
  
 ```bash
 #-----Genome (these are always required)
-genome=/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta #genome sequence (fasta file or fasta embeded in GFF3 file)
+genome=Gbimaculatus_Gap_filled.fasta #genome sequence (fasta file or fasta embeded in GFF3 file)
 organism_type=eukaryotic #eukaryotic or prokaryotic. Default is eukaryotic
 
 #-----Re-annotation Using MAKER Derived GFF3
@@ -298,18 +285,18 @@ pred_pass=0 #use ab-initio predictions in maker_gff: 1 = yes, 0 = no
 other_pass=0 #passthrough anyything else in maker_gff: 1 = yes, 0 = no
 
 #-----EST Evidence (for best results provide a file for at least one)
-est=/n/extavour_lab/Lab/Everyone/transcriptomes/Assemblies/Gryllus_bimaculatus/Asgard_version/Gryllus.fa,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta #set of ESTs or assembled mRNA-seq in fasta format
-altest=/n/scratchlfs/extavour_lab/gylla/Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta #EST/cDNA sequence file in fasta format from an alternate organism
-est_gff=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/stringtie_JoinedAustenHisat_sorted.gff3,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/stringtieout_JoinedEmbryoHisat_sorted.gff3 #aligned ESTs or mRNA-seq from an external GFF3 file
+est=/Asgard_version/Gryllus.fa,Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt,Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta #set of ESTs or assembled mRNA-seq in fasta format
+altest=Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta #EST/cDNA sequence file in fasta format from an alternate organism
+est_gff=RNA_seq_Gbi/stringtie_JoinedRNAseqEggHisat_sorted.gff3,RNA_seq_Gbi/stringtieout_JoinedEmbryoHisat_sorted.gff3 #aligned ESTs or mRNA-seq from an external GFF3 file
 altest_gff= #aligned ESTs from a closly relate species in GFF3 format
 
 #-----Protein Homology Evidence (for best results provide a file for at least one)
-protein=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta #protein sequence file in fasta format (i.e. from mutiple oransisms)
+protein=Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta #protein sequence file in fasta format (i.e. from mutiple oransisms)
 protein_gff=  #aligned protein homology evidence from an external GFF3 file
 
 #-----Repeat Masking (leave values blank to skip repeat masking)
 model_org= #select a model organism for RepBase masking in RepeatMasker
-rmlib=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa #provide an organism specific repeat library in fasta format for RepeatMasker
+rmlib=GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa #provide an organism specific repeat library in fasta format for RepeatMasker
 repeat_protein= #provide a fasta file of transposable element proteins for RepeatRunner
 rm_gff= #pre-identified repeat elements from an external GFF3 file
 prok_rm=0 #forces MAKER to repeatmask prokaryotes (no reason to change this), 1 = yes, 0 = no
@@ -317,7 +304,7 @@ softmask=1 #use soft-masking rather than hard-masking in BLAST (i.e. seg and dus
 
 #-----Gene Prediction
 snaphmm= #SNAP HMM file
-gmhmm=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/GeneMark/output/gmhmm.mod #GeneMark HMM file
+gmhmm=GeneMark/output/gmhmm.mod #GeneMark HMM file
 augustus_species=GBimaculatusV3 #Augustus gene prediction species model
 fgenesh_par_file= #FGENESH parameter file
 pred_gff= #ab-initio predictions from an external GFF3 file
@@ -371,7 +358,6 @@ I will use MPI to make it faster:
 #!/bin/bash
 #SBATCH --job-name=Maker_r1
 #SBATCH --mail-type=ALL 
-#SBATCH --mail-user=guillem_ylla@fas.harvard.edu
 #SBATCH -n 200 # Number of cores
 #SBATCH -t 7-00:00:00 # Runtime in minutes
 #SBATCH -p shared # Partition to submit to
@@ -394,7 +380,7 @@ module load maker/2.31.8-fasrc01
 
 echo "export Augustus config dir"
 
-export AUGUSTUS_CONFIG_PATH=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/config
+export AUGUSTUS_CONFIG_PATH=Maker/Maker_GbiV3_v1/config
 
 echo "Run Maker"
 srun -n $SLURM_NTASKS --mpi=pmi2 maker/bin/maker  
@@ -404,32 +390,6 @@ pwd; hostname; date
 ```
 With 200 cpus and 5Gb of RAM each CPU, took ~2days. 
 
-
-The file *Gbimaculatus_Gap_filled.maker.output/Gbimaculatus_Gap_filled_master_datastore_index.log* show the status of each scaffold. Ideally, we will see each scaffold first as "Started" and later "Finished", if we observe "RETRY" make sure they later appear as "FINISHED", if it shows "SKIPPED_SMALL" or "DIED_SKIPPED_PER" we shoule re-run Maker. (If we don't cahnge the *maker_opts.ctl* Maker will only re-run/continue where it crashed/failed).
-
-Lets make sure that Maker finished correctly. There wre issues with the Scratchlf disk and connectivity between nodes, for that reason Maker was automatically cancelled and rescheduled... 
-
-```bash
- grep  "DIED_SKIPPED_PERMANENT" Gbimaculatus_Gap_filled.maker.output/Gbimaculatus_Gap_filled_master_datastore_index.log
-#Contig102	Gbimaculatus_Gap_filled_datastore/AC/84/Contig102/	DIED_SKIPPED_PERMANENT
-#Contig300	Gbimaculatus_Gap_filled_datastore/C0/0C/Contig300/	DIED_SKIPPED_PERMANENT
-#grep -P "Contig102\t" Gbimaculatus_Gap_filled.maker.output/Gbimaculatus_Gap_filled_master_datastore_index.log
-#Contig102 didnt finish
-```
-
-*WARNING:* I tried to re-run it but these 2 contigs were skipt again because they were already tried the maximum number times. After I added more tries at *maker_opts.ctl*, these 2 contigs ran!
-
-```bash
-##Both contihs show that FINISHED
-grep -P "Contig102\t" Gbimaculatus_Gap_filled.maker.output/Gbimaculatus_Gap_filled_master_datastore_index.log
-grep -P "Contig300\t" Gbimaculatus_Gap_filled.maker.output/Gbimaculatus_Gap_filled_master_datastore_index.log
-# Contig102	Gbimaculatus_Gap_filled_datastore/AC/84/Contig102/	DIED_SKIPPED_PERMANENT
-# Contig300	Gbimaculatus_Gap_filled_datastore/C0/0C/Contig300/	DIED_SKIPPED_PERMANENT
-# Contig102	Gbimaculatus_Gap_filled_datastore/AC/84/Contig102/	RETRY
-# Contig300	Gbimaculatus_Gap_filled_datastore/C0/0C/Contig300/	RETRY
-# Contig300	Gbimaculatus_Gap_filled_datastore/C0/0C/Contig300/	FINISHED
-# Contig102	Gbimaculatus_Gap_filled_datastore/AC/84/Contig102/	FINISHED
-```
 
 To collect the maker output we need to run:
 
@@ -443,7 +403,7 @@ module load maker/2.31.8-fasrc01
 
 
 # backup outputs in a higher directory
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1
+cd Maker/Maker_GbiV3_v1
 
 mkdir Maker_GbiV3_v1_round1
 cd Maker_GbiV3_v1_round1
@@ -492,11 +452,11 @@ module load maker/2.31.8-fasrc01
 module load snap/2013.11.29-fasrc01
 
 
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/SNAP_training/After_Maker_roun1
+cd SNAP_training/After_Maker_roun1
 
 ## copy the 2 files for Snap
-cp /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/genome.ann .
-cp /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/genome.dna .
+cp Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/genome.ann .
+cp Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/genome.dna .
 
 #The basic steps for training SNAP are first to filter the input gene models, then capture genomic sequence immediately surrounding each model locus, and finally uses those captured segments to produce the HMM. You can explore the internal SNAP documentation for more details if you wish.
  fathom -categorize 1000 genome.ann genome.dna
@@ -521,7 +481,7 @@ After havintg SNAP trained with the 1st Maker iteration models, I run maker agai
 
 
 * Gene Prediction
-  * snaphmm=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/SNAP_training/After_Maker_roun1/Gbimaculatus_Gap_filled.hmm
+  * snaphmm=SNAP_training/After_Maker_roun1/Gbimaculatus_Gap_filled.hmm
   * est2genome=0
   * protein2genome=0
   * alt_splice=1
@@ -531,7 +491,7 @@ And the maker_opts.ctl file should look like:
 
 ```bash
 #-----Genome (these are always required)
-genome=/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta #genome sequence (fasta file or fasta embeded in GFF3 file)
+genome=Gbimaculatus_Gap_filled.fasta #genome sequence (fasta file or fasta embeded in GFF3 file)
 organism_type=eukaryotic #eukaryotic or prokaryotic. Default is eukaryotic
 
 #-----Re-annotation Using MAKER Derived GFF3
@@ -545,26 +505,26 @@ pred_pass=0 #use ab-initio predictions in maker_gff: 1 = yes, 0 = no
 other_pass=0 #passthrough anyything else in maker_gff: 1 = yes, 0 = no
 
 #-----EST Evidence (for best results provide a file for at least one)
-est=/n/extavour_lab/Lab/Everyone/transcriptomes/Assemblies/Gryllus_bimaculatus/Asgard_version/Gryllus.fa,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta #set of ESTs or assembled mRNA-seq in fasta format
-altest=/n/scratchlfs/extavour_lab/gylla/Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta #EST/cDNA sequence file in fasta format from an alternate organism
-est_gff=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/stringtie_JoinedAustenHisat_sorted.gff3,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/stringtieout_JoinedEmbryoHisat_sorted.gff3 #aligned ESTs or mRNA-seq from an external GFF3 file
+est=/Asgard_version/Gryllus.fa,Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt,Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta #set of ESTs or assembled mRNA-seq in fasta format
+altest=Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta #EST/cDNA sequence file in fasta format from an alternate organism
+est_gff=RNA_seq_Gbi/stringtie_JoinedRNAseqEggHisat_sorted.gff3,RNA_seq_Gbi/stringtieout_JoinedEmbryoHisat_sorted.gff3 #aligned ESTs or mRNA-seq from an external GFF3 file
 altest_gff= #aligned ESTs from a closly relate species in GFF3 format
 
 #-----Protein Homology Evidence (for best results provide a file for at least one)
-protein=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta #protein sequence file in fasta format (i.e. from mutiple oransisms)
+protein=Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta #protein sequence file in fasta format (i.e. from mutiple oransisms)
 protein_gff=  #aligned protein homology evidence from an external GFF3 file
 
 #-----Repeat Masking (leave values blank to skip repeat masking)
 model_org= #select a model organism for RepBase masking in RepeatMasker
-rmlib=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa #provide an organism specific repeat library in fasta format for RepeatMasker
+rmlib=GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa #provide an organism specific repeat library in fasta format for RepeatMasker
 repeat_protein= #provide a fasta file of transposable element proteins for RepeatRunner
 rm_gff= #pre-identified repeat elements from an external GFF3 file
 prok_rm=0 #forces MAKER to repeatmask prokaryotes (no reason to change this), 1 = yes, 0 = no
 softmask=1 #use soft-masking rather than hard-masking in BLAST (i.e. seg and dust filtering)
 
 #-----Gene Prediction
-snaphmm=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/SNAP_training/After_Maker_roun1/Gbimaculatus_Gap_filled.hmm #SNAP HMM file
-gmhmm=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/GeneMark/output/gmhmm.mod #GeneMark HMM file
+snaphmm=SNAP_training/After_Maker_roun1/Gbimaculatus_Gap_filled.hmm #SNAP HMM file
+gmhmm=GeneMark/output/gmhmm.mod #GeneMark HMM file
 augustus_species=GBimaculatusV3 #Augustus gene prediction species model
 fgenesh_par_file= #FGENESH parameter file
 pred_gff= #ab-initio predictions from an external GFF3 file
@@ -613,7 +573,6 @@ TMP= #specify a directory other than the system default temporary directory for 
 #!/bin/bash
 #SBATCH --job-name=Maker_r2
 #SBATCH --mail-type=ALL 
-#SBATCH --mail-user=guillem_ylla@fas.harvard.edu
 #SBATCH -n 50 # Number of cores
 #SBATCH -t 7-00:00:00 # Runtime in minutes
 #SBATCH -p general # Partition to submit to
@@ -636,7 +595,7 @@ module load maker/2.31.8-fasrc01
 
 echo "export Augustus config dir"
 
-export AUGUSTUS_CONFIG_PATH=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/config
+export AUGUSTUS_CONFIG_PATH=Maker/Maker_GbiV3_v1/config
 
 echo "Run Maker"
 srun -n $SLURM_NTASKS --mpi=pmi2 maker/bin/maker  
@@ -656,7 +615,7 @@ Collect maker round 2 output  as sbatch script.
 ```bash
 
 # backup outputs in a higher directory
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1
+cd Maker/Maker_GbiV3_v1
 
 #mkdir Maker_GbiV3_v1_round2
 cd Maker_GbiV3_v1_round2
@@ -684,11 +643,11 @@ module load maker/2.31.8-fasrc01
 module load snap/2013.11.29-fasrc01
 
 
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/SNAP_training/After_Maker_round2
+cd SNAP_training/After_Maker_round2
 
 ## copy the 2 files for Snap
-# cp /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/genome.ann .
-# cp /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/genome.dna .
+# cp Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/genome.ann .
+# cp Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/genome.dna .
 
 #The basic steps for training SNAP are first to filter the input gene models, then capture genomic sequence immediately surrounding each model locus, and finally uses those captured segments to produce the HMM. You can explore the internal SNAP documentation for more details if you wish.
  fathom -categorize 1000 genome.ann genome.dna
@@ -711,7 +670,7 @@ cp maker_opts.ctl maker_optsctl_round2
 After havintg SNAP trained with the 2nd Maker iteration models, I run maker again in the same directory, only changing:
 
 * Gene Prediction
-  * snaphmm=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/SNAP_training/After_Maker_round2/Gbimaculatus_Gap_filled.hmm
+  * snaphmm=SNAP_training/After_Maker_round2/Gbimaculatus_Gap_filled.hmm
 
 
 
@@ -719,7 +678,7 @@ And the maker_opts.ctl file should look like:
 
 ```bash
 #-----Genome (these are always required)
-genome=/n/home09/gylla/Genomes/Gryllus_bimaculatus/V3/Gbimaculatus_Gap_filled.fasta #genome sequence (fasta file or fasta embeded in GFF3 file)
+genome=Gbimaculatus_Gap_filled.fasta #genome sequence (fasta file or fasta embeded in GFF3 file)
 organism_type=eukaryotic #eukaryotic or prokaryotic. Default is eukaryotic
 
 #-----Re-annotation Using MAKER Derived GFF3
@@ -733,26 +692,26 @@ pred_pass=0 #use ab-initio predictions in maker_gff: 1 = yes, 0 = no
 other_pass=0 #passthrough anyything else in maker_gff: 1 = yes, 0 = no
 
 #-----EST Evidence (for best results provide a file for at least one)
-est=/n/extavour_lab/Lab/Everyone/transcriptomes/Assemblies/Gryllus_bimaculatus/Asgard_version/Gryllus.fa,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta #set of ESTs or assembled mRNA-seq in fasta format
-altest=/n/scratchlfs/extavour_lab/gylla/Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta #EST/cDNA sequence file in fasta format from an alternate organism
-est_gff=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/stringtie_JoinedAustenHisat_sorted.gff3,/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/RNA_seq_Gbi/stringtieout_JoinedEmbryoHisat_sorted.gff3 #aligned ESTs or mRNA-seq from an external GFF3 file
+est=/Asgard_version/Gryllus.fa,Gbi_prothoracic_gangalion_transcriptome/GFMG01.1.fsa_nt,Gbi_NCBI_ESTs/ncbi_ests_2019_noambiguous.fasta #set of ESTs or assembled mRNA-seq in fasta format
+altest=Laupala_kohalensis_annotation/Protein_coding_genes/Ncbi_ESTs/ncbi_Lko_jan2019_noambiguous.fasta #EST/cDNA sequence file in fasta format from an alternate organism
+est_gff=RNA_seq_Gbi/stringtie_JoinedRNAseqEggHisat_sorted.gff3,RNA_seq_Gbi/stringtieout_JoinedEmbryoHisat_sorted.gff3 #aligned ESTs or mRNA-seq from an external GFF3 file
 altest_gff= #aligned ESTs from a closly relate species in GFF3 format
 
 #-----Protein Homology Evidence (for best results provide a file for at least one)
-protein=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta #protein sequence file in fasta format (i.e. from mutiple oransisms)
+protein=Insect_swissprot/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta #protein sequence file in fasta format (i.e. from mutiple oransisms)
 protein_gff=  #aligned protein homology evidence from an external GFF3 file
 
 #-----Repeat Masking (leave values blank to skip repeat masking)
 model_org= #select a model organism for RepBase masking in RepeatMasker
-rmlib=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa #provide an organism specific repeat library in fasta format for RepeatMasker
+rmlib=GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa #provide an organism specific repeat library in fasta format for RepeatMasker
 repeat_protein= #provide a fasta file of transposable element proteins for RepeatRunner
 rm_gff= #pre-identified repeat elements from an external GFF3 file
 prok_rm=0 #forces MAKER to repeatmask prokaryotes (no reason to change this), 1 = yes, 0 = no
 softmask=1 #use soft-masking rather than hard-masking in BLAST (i.e. seg and dust filtering)
 
 #-----Gene Prediction
-snaphmm=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/SNAP_training/After_Maker_round2/Gbimaculatus_Gap_filled.hmm #SNAP HMM file
-gmhmm=/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/GeneMark/output/gmhmm.mod #GeneMark HMM file
+snaphmm=SNAP_training/After_Maker_round2/Gbimaculatus_Gap_filled.hmm #SNAP HMM file
+gmhmm=GeneMark/output/gmhmm.mod #GeneMark HMM file
 augustus_species=GBimaculatusV3 #Augustus gene prediction species model
 fgenesh_par_file= #FGENESH parameter file
 pred_gff= #ab-initio predictions from an external GFF3 file
@@ -803,7 +762,7 @@ Collect maker round 3 output:
 grep  "DIED_SKIPPED_PERMANENT" Gbimaculatus_Gap_filled.maker.output/Gbimaculatus_Gap_filled_master_datastore_index.log
 
 # backup outputs in a higher directory
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1
+cd Maker/Maker_GbiV3_v1
 
 #mkdir Maker_GbiV3_v1_round3
 cd Maker_GbiV3_v1_round3
@@ -827,7 +786,7 @@ First, I count number of codying genes genes and mRNAs:
 #####################
 ###### Round 1 ######
 #####################
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1
+cd Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1
 
 ### Genes ###
 ## WARNING: tRNAs are annotated as "gene"
@@ -856,7 +815,7 @@ grep -c ">" Gbimaculatus_Gap_filled.all.maker.proteins.fasta
 #####################
 #After these 2nd run, the Maker_GbiV3_v1_r1.onlyGenes.gff contain some repeaeted features (like mRNAs)... i don-t know exatly why, but seems could have been a problem with stop/start the maker...
 
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2
+cd Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2
 
 ## I found out that  the .gff contains several duplicated lines
 ### I can-t really filte rduplicated lines on Gbimaculatus_Gap_filled.all.gff, because i could e,liminate some of the fasta lines...
@@ -901,7 +860,7 @@ grep -c ">" Gbimaculatus_Gap_filled.all.maker.proteins.fasta
 #####################
 ###### Round 3 ######
 #####################
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round3
+cd Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round3
 
 
 ### Genes ###
@@ -930,23 +889,23 @@ grep -c ">" Gbimaculatus_Gap_filled.all.maker.proteins.fasta
 ```bash
 ## All the following commands were ran individual sbatch scripts.
 #### Round 1
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Annotations_Quality/Maker_GbiV3_v1_round1_completed
+cd Annotations_Quality/Maker_GbiV3_v1_round1_completed
 
-Fasta="/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
+Fasta="Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
 outfilename="Busco_maker_v1r1"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS -i $Fasta  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m tran
 
 #### Round 2
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Annotations_Quality/Maker_GbiV3_v1_round2_completed
+cd Annotations_Quality/Maker_GbiV3_v1_round2_completed
 
-Fasta="/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
+Fasta="Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
 outfilename="Busco_maker_v1r2"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS -i $Fasta  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m tran
 
 #### Round 3
-cd /n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Annotations_Quality/Maker_GbiV3_v1_round3_completed
+cd Annotations_Quality/Maker_GbiV3_v1_round3_completed
 
-Fasta="/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Protein_coding_genes/Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round3/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
+Fasta="Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round3/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
 outfilename="Busco_maker_v1r2"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS -i $Fasta  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m tran
 
@@ -965,6 +924,6 @@ Backup SLURM scripts
 
 ```bash
 #find ../ -type f -name *.sbatch -exec cp {} . \;
-scp -r gylla@odyssey.rc.fas.harvard.edu:/n/scratchlfs/extavour_lab/gylla/GBI_Genome_v3/Bkup_Scripts .
+scp -r gylla@odyssey.rc.fas.harvard.edu:GBI_Genome_v3/Bkup_Scripts .
 
 ```
