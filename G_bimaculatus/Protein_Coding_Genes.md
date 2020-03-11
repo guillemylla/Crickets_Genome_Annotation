@@ -205,7 +205,7 @@ On the maker_opts.ctl we put the Augustus species *"GBimaculatusV3"* and we indi
 
 ```bash
 ## Must remember to put the follwoing line in the sbatch file:
-export AUGUSTUS_CONFIG_PATH=Maker/Maker_GbiV3_v1/config
+export AUGUSTUS_CONFIG_PATH=Maker/config
 
 ````
  
@@ -250,7 +250,7 @@ This creates the files:
   * rmlib=GBI_Genome_v3/Repetitive_content/Custom_Library/CombinedLibrary.lib.minlen50.nr.classified.filtered.fa  #provide an organism specific repeat library in fasta format for RepeatMasker
 * Gene Prediction
   * gmhmm=GeneMark/output/gmhmm.mod
-  * augustus_species=GBimaculatusV3 #Maker_GbiV3_v1/config/species/GBimaculatusV3/
+  * augustus_species=GBimaculatusV3 #config/species/GBimaculatusV3/
   * est2genome=1 !!!!!! *This option allows you to make gene models directly from the transcript evidence. This option is useful when you don't have a gene predictor trained on your organism and ere is not a training file available for a closely related organism. The gene models from this option are going to be fragmented and incomplete because of the nature of transcript data, especial mRNA-Seq. These gene models are most useful for first round training of gene finders. One you have a trained gene predictor turn this option off. *
   * protein2genome=1 !!!!!! *Similar to est2genome this option will make gene models out of protein data. Like est2genome this option is most useful for training gene predictors. *
   * trna=1 #find tRNAs with tRNAscan, 1 = yes, 0 = no
@@ -375,7 +375,7 @@ module load maker/2.31.8-fasrc01
 
 echo "export Augustus config dir"
 
-export AUGUSTUS_CONFIG_PATH=Maker/Maker_GbiV3_v1/config
+export AUGUSTUS_CONFIG_PATH=Maker/config
 
 echo "Run Maker"
 srun -n $SLURM_NTASKS --mpi=pmi2 maker/bin/maker  
@@ -450,8 +450,8 @@ module load snap/2013.11.29-fasrc01
 cd SNAP_training/After_Maker_roun1
 
 ## copy the 2 files for Snap
-cp Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/genome.ann .
-cp Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/genome.dna .
+cp Maker/Maker_GbiV3_v1_round1/genome.ann .
+cp Maker/Maker_GbiV3_v1_round1/genome.dna .
 
 #The basic steps for training SNAP are first to filter the input gene models, then capture genomic sequence immediately surrounding each model locus, and finally uses those captured segments to produce the HMM. You can explore the internal SNAP documentation for more details if you wish.
  fathom -categorize 1000 genome.ann genome.dna
@@ -590,7 +590,7 @@ module load maker/2.31.8-fasrc01
 
 echo "export Augustus config dir"
 
-export AUGUSTUS_CONFIG_PATH=Maker/Maker_GbiV3_v1/config
+export AUGUSTUS_CONFIG_PATH=Maker/config
 
 echo "Run Maker"
 srun -n $SLURM_NTASKS --mpi=pmi2 maker/bin/maker  
@@ -635,8 +635,8 @@ module load snap/2013.11.29-fasrc01
 cd SNAP_training/After_Maker_round2
 
 ## copy the 2 files for Snap
-# cp Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/genome.ann .
-# cp Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/genome.dna .
+# cp Maker/Maker_GbiV3_v1_round2/genome.ann .
+# cp Maker/Maker_GbiV3_v1_round2/genome.dna .
 
 #The basic steps for training SNAP are first to filter the input gene models, then capture genomic sequence immediately surrounding each model locus, and finally uses those captured segments to produce the HMM. You can explore the internal SNAP documentation for more details if you wish.
  fathom -categorize 1000 genome.ann genome.dna
@@ -773,21 +773,21 @@ Quality of the transcriptome after each Maker round (version 3).
 #### Round 1
 cd Annotations_Quality/Maker_GbiV3_v1_round1_completed
 
-Fasta="Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round1/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
+Fasta="Maker/Maker_GbiV3_v1_round1/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
 outfilename="Busco_maker_v1r1"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS -i $Fasta  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m tran
 
 #### Round 2
 cd Annotations_Quality/Maker_GbiV3_v1_round2_completed
 
-Fasta="Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round2/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
+Fasta="Maker/Maker_GbiV3_v1_round2/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
 outfilename="Busco_maker_v1r2"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS -i $Fasta  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m tran
 
 #### Round 3
 cd Annotations_Quality/Maker_GbiV3_v1_round3_completed
 
-Fasta="Maker/Maker_GbiV3_v1/Maker_GbiV3_v1_round3/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
+Fasta="Maker/Maker_GbiV3_v1_round3/Gbimaculatus_Gap_filled.all.maker.transcripts.fasta"
 outfilename="Busco_maker_v1r2"
 python ~/busco/scripts/run_BUSCO.py --cpu $SLURM_NTASKS -i $Fasta  -o $outfilename -l ~/busco/datasets/insecta_odb9 -m tran
 
