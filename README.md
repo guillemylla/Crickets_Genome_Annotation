@@ -1,7 +1,7 @@
 # Crickets Genome Annotation Scripts
 
 - Code author: [Guillem Ylla](https://guillemylla.github.io/)
-- Publication: ["Cricket genomes: the genomes of future food"]()
+- Publication: [**"Cricket genomes: the genomes of future food"**]()
 
 ------
 
