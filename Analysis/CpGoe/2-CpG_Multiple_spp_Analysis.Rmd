@@ -1,0 +1,1506 @@
+---
+title: "CpGoe Multiple species"
+author: "Guillem Ylla"
+date: "11/26/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r loadlibs, include=FALSE, cache=FALSE, message=F, warning=F}
+setwd("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe/")
+library(RSQLite)
+library(Biostrings)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(ggwordcloud)
+library(RColorBrewer)
+library(tagcloud)
+library(mixtools)
+library(data.table)
+library(dplyr)
+library(Rgraphviz)
+library(knitr)
+library(reconPlots)
+library(topGO)
+```
+```{r setup, include=FALSE, cache=FALSE, message=F, warning=F}
+knitr::opts_chunk$set(echo = TRUE)# by deafult echo=true in all chunks
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)# avoid code outside page
+```
+
+CpGoe calculated in:~WorkingDir/CpGoe/1-Count_CpGoe.ipynb
+
+Here, I apply a gaussian Mixture model, getb the mean of each curve an caclulate the standard error of each mean(se). The SE is used to calculate the 99% confidence interval.
+
+
+## Load CpGoe values
+
+ 
+```{r, GbiCpG, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
+
+
+CpGoe_insects<-read.delim("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe/CpGoe_outputs/All_insects_CpGpe")
+CpGoe_insects<-CpGoe_insects[!is.na(CpGoe_insects$CpGoe),]
+```
+
+## Overview CpGoe 16 Insects
+
+
+Plot the CpG distribution for all 16 insects:
+
+```{r, CpG,  include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
+CGoe_plot1<-ggplot(CpGoe_insects, aes(x=CpGoe,  y = ..density.. )) + 
+   facet_wrap(~Spp)+
+   geom_histogram(bins=1000)+
+   scale_x_continuous(name = "CpGo/e") +
+   ggtitle("CGo/e distribution")  +ylab("Number of CDS")
+CGoe_plot1
+```
+
+
+Same, but removing genes CpHoe>2.
+
+
+```{r, CpG2,  include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
+dim(CpGoe_insects[CpGoe_insects$CpGoe>2,])
+
+CpGoe_insects_nolarger2<-CpGoe_insects[CpGoe_insects$CpGoe<2,]
+
+CpGoe_insects_b02<-CpGoe_insects[CpGoe_insects$CpGoe<2 & CpGoe_insects$CpGoe>0,]
+
+
+CGoe_plot2<-ggplot(CpGoe_insects_b02, aes(x=CpGoe,  y = ..density.. )) + 
+   facet_wrap(~Spp)+
+   geom_histogram(bins=150)+
+   scale_x_continuous(name = "CpGo/e") +
+   ggtitle("CGo/e distribution")  +ylab("Density")
+CGoe_plot2
+```
+
+```{r, CpG_Miniature_forpaper,  include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
+
+CGoe_plotMiniatures<-ggplot(CpGoe_insects_b02, aes(x=CpGoe,  y = ..density.. )) + 
+   facet_wrap(~Spp)+
+   geom_histogram(bins=150, colour="black")+
+   scale_x_continuous(name = "CpGo/e") +
+  ggtitle("CGo/e distribution")  +ylab("Density")+
+theme(
+    #plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    panel.background = element_rect(fill = "transparent",colour = NA),
+    plot.background = element_rect(fill = "transparent",colour = NA),
+    axis.text.x=element_blank(),
+    axis.text.y=element_blank(),
+    axis.ticks.x=element_blank(),
+   axis.ticks.y=element_blank(),
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent") # get rid of legend panel bg
+  )
+
+
+ggsave("CGoe_plotMiniatures.png",CGoe_plotMiniatures, dpi = 300,bg = "transparent")
+```
+
+
+## CpGoe bimodal model 16 insects
+
+
+Lets try to fit all of them in a bimofdal distribution:
+
+**FOLLOWING CHUNCK WORKS IF COPY/PAST IN THE R TERMINAl**
+
+```{r,bimodal,  message=FALSE, warning=FALSE,  eval=FALSE, cache=TRUE, include=TRUE, paged.print=FALSE}
+
+for (species in unique(CpGoe_insects$Spp)) {
+  print(species)
+  # only cpg values >0 & <2
+  CpGoe_Spp<-CpGoe_insects_b02[CpGoe_insects_b02$Spp==species,] 
+  #CpGoe_Spp<-CpGoe_insects[CpGoe_insects$Spp==species,]
+  CpGoe_toplot = CpGoe_Spp$CpGoe
+  CpGoe_toplot<-CpGoe_toplot[!is.na(CpGoe_toplot)]
+  mixmdl= normalmixEM(CpGoe_toplot,maxit=20000)
+
+  
+  # SE1=mixmdl$sigma[1]/sqrt(length(CpGoe_toplot)*mixmdl$lambda[1])
+  # CI_1_right=mixmdl$mu[1]+(SE1*1.96)
+  # CI_1_left=mixmdl$mu[1]-(SE1*1.96)
+  # SE2=mixmdl$sigma[2]/sqrt(length(CpGoe_toplot)*mixmdl$lambda[1])
+  # CI_2_right=mixmdl$mu[2]+(SE2*1.96)
+  # CI_2_left=mixmdl$mu[2]-(SE2*1.96)
+
+  #Standard Error function from mixtools bootsratping 100 
+  se<-boot.se(mixmdl,B=100)
+  # Intervals
+  CI_1_right=mixmdl$mu[1]+(se$mu.se[1]*2.8)
+  CI_1_left=mixmdl$mu[1]-(se$mu.se[1]*2.8)
+  
+  CI_2_right=mixmdl$mu[2]+(se$mu.se[2]*2.8)
+  CI_2_left=mixmdl$mu[2]-(se$mu.se[2]*2.8)
+
+
+  ## function for ggplots:
+  plot_mix_comps <- function(x, mu, sigma, lam) {
+      lam * dnorm(x, mu, sigma)}
+
+  
+   Biomdal_dist<-data.frame(x = mixmdl$x) %>%
+              ggplot() +
+              geom_histogram(aes(x, ..density..),  colour="black", alpha=.8, bins=120) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdl$mu[1], mixmdl$sigma[1], lam = mixmdl$lambda[1]),
+                            colour = "#E69F00", lwd = 1) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdl$mu[2], mixmdl$sigma[2], lam = mixmdl$lambda[2]),
+                            colour = "#56B4E9", lwd = 1) +
+              geom_vline(xintercept = mixmdl$mu[1], col = "#E69F00", size = .8) + 
+              annotate("text",label=round(mixmdl$mu[1], 3),y=  1.60, x=mixmdl$mu[1] + .01, col="#E69F00",size=4)+
+              annotate("rect", xmin = CI_1_left, xmax =CI_1_right, ymin = 0, ymax = Inf,   alpha = 0.2, fill = "red")    +
+              geom_vline(xintercept = mixmdl$mu[2], col = "#56B4E9", size = .8)+
+              annotate("rect", xmin = CI_2_left, xmax = CI_2_right, ymin = 0, ymax = Inf,   alpha = 0.2, fill = "red")    +
+              annotate("text",label=round(mixmdl$mu[2], 3),y=  1.20, x=mixmdl$mu[2] + .01, col="#56B4E9",size=4)+
+              annotate("text",label=round(round(mixmdl$lambda[1], 2), 3),y=  1.60, x=mixmdl$mu[1] - .3, col="black",size=4)+
+              annotate("text",label=round(round(mixmdl$lambda[2], 2), 3),y=  1.20, x=mixmdl$mu[2] + .3, col="black",size=4)+
+              #annotate("text",label=paste0("LogLik=",round(mixmdl$loglik, 1)),y=  1.5, x=1.5, col="black",size=4)+
+             ylab("Density")+xlab("CpGo/e")+ggtitle(species)
+
+
+#red line spearateing
+data<-ggplot_build(Biomdal_dist)$data[[1]]
+data_int<-data[data$x>mixmdl$mu[1] & data$x<mixmdl$mu[2] ,]
+cpg_threshold<-data_int[data_int$y==min(data_int$y),]$x
+Biomdal_dist<-Biomdal_dist+ geom_vline(xintercept = cpg_threshold, col = "red", size = .5) +
+                          annotate("text",label=round(cpg_threshold, 3),y=  1.3, x=cpg_threshold + .01, col="red",size=4)
+
+
+ggsave(paste0("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe/plots/",paste0(species, "_CpGplot.png")), Biomdal_dist,  width = 9, height =5, units ="in",dpi = 300,)
+
+}
+```
+
+The Gussian Mixture model, fits 2 gaussian ditributions to the CpGoe of each insect.
+
+I get the mean of each curve (vertical bars) an calculate the standard error (SE) of each mean  with 100 bootstraps  The SE is used to calculate the 99% confidence interval around the mean (red shade).
+
+The red line represents the intersection between the 2 curves, and it is used as threshold between genes with **Low and High CpGoe**.
+
+
+```{r, addplots, results = "asis",  cache=FALSE}
+
+plots <- list.files("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe/plots/")
+
+for(i in plots){
+  if(grepl("_CpGplot.png", i)){
+      filename <- file.path("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe/plots", i)
+      cat("![text](",filename,")\n")
+  }
+}
+
+```
+
+
+## Gryllus bimaculatus CpGoe distribution
+
+```{r, gbibimodalgbi,  include=TRUE, cache=TRUE, warning=FALSE,  results='hide', message = FALSE}
+
+#Gbi_CpG<-CpGoe_insects[CpGoe_insects$Spp=="Gryllus_bimaculatus",]
+Gbi_CpG<-CpGoe_insects_b02[CpGoe_insects_b02$Spp=="Gryllus_bimaculatus",]
+
+CpGoe_toplotGbi = Gbi_CpG$CpGoe
+CpGoe_toplotGbi<-CpGoe_toplotGbi[!is.na(CpGoe_toplotGbi)]
+mixmdlGbi = normalmixEM(CpGoe_toplotGbi,maxit=20000)
+
+
+##1.96?? wikpedia:
+#95% confidence limits, where x ¯ {\displaystyle {\bar {x}}} {\bar {x}} is equal to the sample mean, S E {\displaystyle SE} SE is equal to the standard error for the sample mean, and 1.96 is the approximate value of the 97.5 percentile point of the normal distribution: 
+# Lambda is the poportion of observations belonging to each distribution
+# SE1=mixmdlGbi$sigma[1]/sqrt(length(CpGoe_toplotGbi)*mixmdlGbi$lambda[1])
+# CI_1_right=mixmdlGbi$mu[1]+(SE1*1.96)
+# CI_1_left=mixmdlGbi$mu[1]-(SE1*1.96)
+# SE2=mixmdlGbi$sigma[2]/sqrt(length(CpGoe_toplotGbi)*mixmdlGbi$lambda[2])
+# CI_2_right=mixmdlGbi$mu[2]+(SE2*1.96)
+# CI_2_left=mixmdlGbi$mu[2]-(SE2*1.96)
+ 
+
+# 95%  1.960
+# 99%  2.57
+# 99.5% 2.807
+
+ ## Calculating SE using mixtools bootystrap function
+se<-boot.se(mixmdlGbi,B=100)
+#confidence intervals
+CI_1_right=mixmdlGbi$mu[1]+(se$mu.se[1]*2.8)
+CI_1_left=mixmdlGbi$mu[1]-(se$mu.se[1]*2.8)
+
+CI_2_right=mixmdlGbi$mu[2]+(se$mu.se[2]*2.8)
+CI_2_left=mixmdlGbi$mu[2]-(se$mu.se[2]*2.8)
+
+
+#plot(mixmdlGbi, breaks=100 ,which=2)
+#lines(density(CpGoe_toplot), lty=2, lwd=2)
+
+
+## In ggplots:
+plot_mix_comps <- function(x, mu, sigma, lam) {
+  lam * dnorm(x, mu, sigma)
+}
+
+
+Bimodal_Gbi<-data.frame(x = mixmdlGbi$x) %>%
+              ggplot() +
+              geom_histogram(aes(x, ..density..),  colour="black", alpha=.8, bins=100) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlGbi$mu[1], mixmdlGbi$sigma[1], lam = mixmdlGbi$lambda[1]),
+                            colour = "#E69F00", lwd = 1) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlGbi$mu[2], mixmdlGbi$sigma[2], lam = mixmdlGbi$lambda[2]),
+                            colour = "#56B4E9", lwd = 1) +
+              geom_vline(xintercept = mixmdlGbi$mu[1], col = "#E69F00", size = .8) + 
+              annotate("rect", xmin = CI_1_left, xmax = CI_1_right, ymin = 0, ymax = Inf,   alpha = 0.2, fill = "red")    +
+              annotate("text",label=round(mixmdlGbi$mu[1], 3),y=  1.8, x=mixmdlGbi$mu[1] + .1, col="#E69F00",size=4)+
+              geom_vline(xintercept = mixmdlGbi$mu[2], col = "#56B4E9", size = .8)+
+              annotate("rect", xmin = CI_2_left, xmax = CI_2_right, ymin = 0, ymax = Inf,   alpha = 0.2, fill = "red")    +
+              annotate("text",label=round(mixmdlGbi$mu[2], 3),y= 1.8, x=mixmdlGbi$mu[2] + .1, col="#56B4E9",size=4)+
+              #annotate("text",label=paste0("LogLik=",round(mixmdlGbi$loglik, 1)),y=  1.5, x=1.5, col="black",size=4)+
+              ylab("Density")+xlab("CpGo/e")
+
+
+### I separate the 2 distributions by the lowest density between means
+# gbidata<-ggplot_build(Bimodal_Gbi)$data[[1]]
+# gbidata_int<-gbidata[gbidata$x>mixmdlGbi$mu[1] & gbidata$x<mixmdlGbi$mu[2] ,]
+# Gbi_cpg_threshold<-gbidata_int[gbidata_int$y==min(gbidata_int$y),]$x
+#red line spearateing   
+curve1 <- function(x)  mixmdlGbi$lambda[1] * dnorm(x, mixmdlGbi$mu[1],  mixmdlGbi$sigma[1])
+curve2 <- function(x)  mixmdlGbi$lambda[2] * dnorm(x, mixmdlGbi$mu[2],  mixmdlGbi$sigma[2])
+
+curveintersectGbi<-curve_intersect(curve1, curve2, empirical = FALSE, domain = c(0, 5))
+
+Gbi_cpg_threshold=curveintersectGbi$x
+
+
+Bimodal_Gbi<-Bimodal_Gbi+ geom_vline(xintercept = Gbi_cpg_threshold, col = "red", size = .5)+
+                  annotate("text",label=round(Gbi_cpg_threshold, 3),y=  1.80, x=Gbi_cpg_threshold + .1, col="red",size=4)
+
+Bimodal_Gbi
+
+
+```
+
+
+
+## Laupala kohalensis  CpGoe distribution
+
+```{r, lkobimodallko,  include=TRUE, cache=TRUE, warning=FALSE, results='hide',  message = FALSE}
+#Lko_CpG<-CpGoe_insects[CpGoe_insects$Spp=="Laupala_kohalensis",]
+Lko_CpG<-CpGoe_insects_b02[CpGoe_insects_b02$Spp=="Laupala_kohalensis",]
+
+CpGoe_toplotLko = Lko_CpG$CpGoe
+CpGoe_toplotLko<-CpGoe_toplotLko[!is.na(CpGoe_toplotLko)]
+mixmdlLko = normalmixEM(CpGoe_toplotLko,maxit=20000)
+
+ ## Calculating SE using mixtools bootystrap function
+se<-boot.se(mixmdlLko,B=100)
+#confidence intervals
+CI_1_right=mixmdlLko$mu[1]+(se$mu.se[1]*2.8)
+CI_1_left=mixmdlLko$mu[1]-(se$mu.se[1]*2.8)
+
+CI_2_right=mixmdlLko$mu[2]+(se$mu.se[2]*2.8)
+CI_2_left=mixmdlLko$mu[2]-(se$mu.se[2]*2.8)
+
+## In ggplots:
+plot_mix_comps <- function(x, mu, sigma, lam) {
+  lam * dnorm(x, mu, sigma)
+}
+
+
+Bimodal_Lko<-data.frame(x = mixmdlLko$x) %>%
+              ggplot() +
+              geom_histogram(aes(x, ..density..),  colour="black", alpha=.8, bins=100) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlLko$mu[1], mixmdlLko$sigma[1], lam = mixmdlLko$lambda[1]),
+                            colour = "#E69F00", lwd = 1) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlLko$mu[2], mixmdlLko$sigma[2], lam = mixmdlLko$lambda[2]),
+                            colour = "#56B4E9", lwd = 1) +
+              geom_vline(xintercept = mixmdlLko$mu[1], col = "#E69F00", size = .8) + 
+              annotate("rect", xmin = CI_1_left, xmax = CI_1_right, ymin = 0, ymax = Inf,   alpha = 0.2, fill = "red")    +
+              annotate("text",label=round(mixmdlLko$mu[1], 3),y=  1.8, x=mixmdlLko$mu[1] + 0.1, col="#E69F00",size=4)+
+              geom_vline(xintercept = mixmdlLko$mu[2], col = "#56B4E9", size = .8)+
+              annotate("rect", xmin = CI_2_left, xmax = CI_2_right, ymin = 0, ymax = Inf,   alpha = 0.2, fill = "red")    +
+              annotate("text",label=round(mixmdlLko$mu[2], 3),y= 1.8, x=mixmdlLko$mu[2] + 0.1 ,col="#56B4E9",size=4)+
+              #annotate("text",label=paste0("LogLik=",round(mixmdlLko$loglik, 1)),y=  1.5, x=1.5, col="black",size=4)+
+              ylab("Density")+xlab("CpGo/e")
+
+
+### I separate the 2 distributions by the lowest density between means
+# lkodata<-ggplot_build(Bimodal_Lko)$data[[1]]
+# lkodata_int<-lkodata[lkodata$x>mixmdlLko$mu[1] & lkodata$x<mixmdlLko$mu[2] ,]
+# Lko_cpg_threshold<-lkodata_int[lkodata_int$y==min(lkodata_int$y),]$x
+#red line spearateing   
+
+curve1 <- function(x)  mixmdlLko$lambda[1] * dnorm(x, mixmdlLko$mu[1],  mixmdlLko$sigma[1])
+curve2 <- function(x)  mixmdlLko$lambda[2] * dnorm(x, mixmdlLko$mu[2],  mixmdlLko$sigma[2])
+
+curveintersectLko<-curve_intersect(curve1, curve2, empirical = FALSE, domain = c(0, 5))
+
+Lko_cpg_threshold=curveintersectLko$x
+
+
+Bimodal_Lko<-Bimodal_Lko+ geom_vline(xintercept = Lko_cpg_threshold, col = "red", size = .5)+
+                  annotate("text",label=round(Lko_cpg_threshold, 3),y=  1.80, x=Lko_cpg_threshold + .1, col="red",size=4)
+
+Bimodal_Lko
+
+
+```
+
+
+## Apis mellifera  CpGoe distribution
+
+```{r, amebimodalame,   include=TRUE, cache=TRUE, warning=FALSE, results='hide',  message = FALSE}
+#Ame_CpG<-CpGoe_insects[CpGoe_insects$Spp=="Apis_mellifera",]
+Ame_CpG<-CpGoe_insects_b02[CpGoe_insects_b02$Spp=="Apis_mellifera",]
+
+CpGoe_toplotAme = Ame_CpG$CpGoe
+CpGoe_toplotAme<-CpGoe_toplotAme[!is.na(CpGoe_toplotAme)]
+mixmdlAme = normalmixEM(CpGoe_toplotAme,maxit=20000)
+
+ ## Calculating SE using mixtools bootystrap function
+se<-boot.se(mixmdlAme,B=100)
+#confidence intervals
+CI_1_right=mixmdlAme$mu[1]+(se$mu.se[1]*2.8)
+CI_1_left=mixmdlAme$mu[1]-(se$mu.se[1]*2.8)
+
+CI_2_right=mixmdlAme$mu[2]+(se$mu.se[2]*2.8)
+CI_2_left=mixmdlAme$mu[2]-(se$mu.se[2]*2.8)
+
+## In ggplots:
+plot_mix_comps <- function(x, mu, sigma, lam) {
+  lam * dnorm(x, mu, sigma)
+}
+
+
+Bimodal_Ame<-data.frame(x = mixmdlAme$x) %>%
+              ggplot() +
+              geom_histogram(aes(x, ..density..),  colour="black", alpha=.8, bins=100) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlAme$mu[1], mixmdlAme$sigma[1], lam = mixmdlAme$lambda[1]),
+                            colour = "#E69F00", lwd = 1) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlAme$mu[2], mixmdlAme$sigma[2], lam = mixmdlAme$lambda[2]),
+                            colour = "#56B4E9", lwd = 1) +
+              geom_vline(xintercept = mixmdlAme$mu[1], col = "#E69F00", size = .8) + 
+              annotate("rect", xmin = CI_1_left, xmax = CI_1_right, ymin = 0, ymax = Inf,   alpha = 0.2, fill = "red")    +
+              annotate("text",label=round(mixmdlAme$mu[1], 3),y=  1.8, x=mixmdlAme$mu[1] + .1, col="#E69F00",size=4)+
+              geom_vline(xintercept = mixmdlAme$mu[2], col = "#56B4E9", size = .8)+
+              annotate("rect", xmin = CI_2_left, xmax = CI_2_right, ymin = 0, ymax = Inf,   alpha = 0.2, fill = "red")    +
+              annotate("text",label=round(mixmdlAme$mu[2], 3),y= 1.8, x=mixmdlAme$mu[2] + .1, col="#56B4E9",size=4)+
+              #annotate("text",label=paste0("LogLik=",round(mixmdlAme$loglik, 1)),y=  1.5, x=1.5, col="black",size=4)+
+              ylab("Density")+xlab("CpGo/e")
+
+
+### I separate the 2 distributions by the lowest density between means
+# amedata<-ggplot_build(Bimodal_Ame)$data[[1]]
+# amedata_int<-amedata[amedata$x>mixmdlAme$mu[1] & amedata$x<mixmdlAme$mu[2] ,]
+# Ame_cpg_threshold<-amedata_int[amedata_int$y==min(amedata_int$y),]$x
+
+
+#red line spearateing   
+
+curve1 <- function(x)  mixmdlAme$lambda[1] * dnorm(x, mixmdlAme$mu[1],  mixmdlAme$sigma[1])
+curve2 <- function(x)  mixmdlAme$lambda[2] * dnorm(x, mixmdlAme$mu[2],  mixmdlAme$sigma[2])
+
+curveintersectAme<-curve_intersect(curve1, curve2, empirical = FALSE, domain = c(0, 5))
+
+Ame_cpg_threshold=curveintersectAme$x
+Bimodal_Ame<-Bimodal_Ame+ geom_vline(xintercept = Ame_cpg_threshold, col = "red", size = .5)+
+                  annotate("text",label=round(Ame_cpg_threshold, 3),y=  1.8, x=Ame_cpg_threshold + .1, col="red",size=4)
+
+Bimodal_Ame
+```
+
+## Crickets CpGoe high vs low
+
+```{r, GbiSelectHighLow}
+
+#Gbi_CpG<-CpGoe_insects[CpGoe_insects$Spp=="Gryllus_bimaculatus",]
+Gbi_CpG<-CpGoe_insects_b02[CpGoe_insects_b02$Spp=="Gryllus_bimaculatus",]
+
+Gbi_CpG$'CpGoe_level'<-"NA"
+Gbi_CpG$'CpGoe_level'[Gbi_CpG$CpGoe>Gbi_cpg_threshold ]<-"High"
+Gbi_CpG$'CpGoe_level'[Gbi_CpG$CpGoe<=Gbi_cpg_threshold ]<-"Low"
+
+Lko_CpG<-CpGoe_insects_b02[CpGoe_insects_b02$Spp=="Laupala_kohalensis",]
+
+Lko_CpG$'CpGoe_level'<-"NA"
+Lko_CpG$'CpGoe_level'[Lko_CpG$CpGoe>Lko_cpg_threshold ]<-"High"
+Lko_CpG$'CpGoe_level'[Lko_CpG$CpGoe<=Lko_cpg_threshold ]<-"Low"
+
+```
+
+
+
+
+```{r, gbicheck, include=TRUE, cache=TRUE}
+
+##sort levels: 1st Low, then High
+Lko_CpG$CpGoe_level <- factor(Lko_CpG$CpGoe_level,levels = c("Low","High"))
+Gbi_CpG$CpGoe_level <- factor(Gbi_CpG$CpGoe_level,levels = c("Low","High"))
+
+
+BoxplotGbi<-ggplot(Gbi_CpG, aes(x=CpGoe_level, y=CpGoe, fill=CpGoe_level)) +
+  geom_boxplot()+ggtitle("Gbi CpG high vs low")+ scale_fill_manual(breaks = c("High", "Low"),values=c("#E69F00", "#56B4E9"))
+
+
+BoxplotLko<-ggplot(Lko_CpG, aes(x=CpGoe_level, y=CpGoe, fill=CpGoe_level)) +
+  geom_boxplot()+ggtitle("Lko CpG high vs low")+ scale_fill_manual(breaks = c("High", "Low"),values=c("#E69F00", "#56B4E9"))
+
+prop.table(table(Gbi_CpG$CpGoe_level))*100
+
+prop.table(table(Lko_CpG$CpGoe_level))*100
+
+
+# summary(Gbi_CpG[Gbi_CpG$CpGoe_level=="High", "CpGoe"])
+# summary(Gbi_CpG[Gbi_CpG$CpGoe_level=="Low", "CpGoe"])
+# t.test(Gbi_CpG[Gbi_CpG$CpGoe_level=="High", "CpGoe"],Gbi_CpG[Gbi_CpG$CpGoe_level=="Low", "CpGoe"])
+grid.arrange(BoxplotGbi+theme(legend.position = "none"), BoxplotLko, ncol = 2)
+
+```
+
+## Crickets CpGoe vs Splicing
+
+Is there any relation between CpGoe and Number of isoforms?
+
+
+```{r, getisoforms, cache=TRUE}
+##############################
+### Gryllus
+##############################
+# Get all the protein-coding genes from the SQL database
+conGbi <- dbConnect(RSQLite::SQLite(), "/home/guillem/data_disk/Cricket_genome_annotation/GBI_Genome_v3/Protein_coding_genes/Annotation_Files/GBI_V3_Annotations.v2.db")
+transcripts_dbGbi <-dbFetch( dbSendQuery(conGbi, "SELECT TranscriptID, GeneID FROM Transcripts"))
+dim(transcripts_dbGbi)
+dbDisconnect(conGbi)
+
+#Gbi_Gene_Isonumber<-aggregate(transcripts_dbGbi, by =list(transcripts_dbGbi$'GeneID'), length)
+Gbi_Gene_Isonumber <- aggregate(. ~ GeneID , data = transcripts_dbGbi, length)
+colnames(Gbi_Gene_Isonumber)<-c("GeneID","Transcripts")
+#head(Gbi_Gene_Isonumber)
+
+
+##############################
+### Laupala
+##############################
+conLko <- dbConnect(RSQLite::SQLite(), "/home/guillem/data_disk/Cricket_genome_annotation/Laupala_kohalensis_annotation/Protein_coding_genes/Annotation_Files/Lko_Annotations.v2.db")
+transcripts_dbLko <-dbFetch( dbSendQuery(conLko, "SELECT TranscriptID, GeneID FROM Transcripts"))
+dim(transcripts_dbLko)
+dbDisconnect(conLko)
+
+Lko_Gene_Isonumber <- aggregate(. ~ GeneID , data = transcripts_dbLko, length)
+colnames(Lko_Gene_Isonumber)<-c("GeneID","Transcripts")
+
+```
+
+```{r, cpgVsisoforms, cache=TRUE}
+#dim(Gbi_Gene_Isonumber)
+dim(Gbi_CpG)# few less bc no eros, nas and >3
+Gbi_CpG$Gene<-sapply(strsplit(as.character(Gbi_CpG$ID),'-'), `[`, 1)
+Gbi_CpG_isoforms<-merge(Gbi_CpG, Gbi_Gene_Isonumber, by.x="Gene", by.y="GeneID")
+#dim(Gbi_CpG_isoforms)
+
+
+dim(Lko_Gene_Isonumber)
+dim(Lko_CpG)# few less bc no eros, nas and >3
+Lko_CpG$Gene<-sapply(strsplit(as.character(Lko_CpG$ID),'-'), `[`, 1)
+Lko_CpG_isoforms<-merge(Lko_CpG, Lko_Gene_Isonumber, by.x="Gene", by.y="GeneID")
+
+
+
+BarplotGbi_CpG_isoform<-ggplot(Gbi_CpG_isoforms, aes(x=CpGoe_level, y=Transcripts,  fill=CpGoe_level)) +
+ geom_bar(position = 'stack',stat="summary", fun.y = "mean") +
+ stat_summary(geom = "errorbar", fun.data = mean_se, position = "dodge")+
+ xlab("CpGoe")+ylab("Mean Transcripts per gene")+ggtitle("Gryllus bimaculatus") + 
+  scale_fill_manual(breaks = c("High", "Low"),values=c("#E69F00", "#56B4E9"))
+
+
+
+
+#t.test(Gbi_CpG_isoforms[Gbi_CpG_isoforms$CpGoe_level=="High", "Transcripts"],Gbi_CpG_isoforms[Gbi_CpG_isoforms$CpGoe_level=="Low", "Transcripts"])
+
+
+## Lko
+BarplotLko_CpG_isoform<-ggplot(Lko_CpG_isoforms, aes(x=CpGoe_level, y=Transcripts,  fill=CpGoe_level)) +
+ geom_bar(position = 'dodge',stat="summary", fun.y = "mean") +
+ stat_summary(geom = "errorbar", fun.data = mean_se, position = "dodge")+
+ xlab("CpGoe")+ylab("Mean Transcripts per gene")+ggtitle("Laupala kohalensis")+
+  scale_fill_manual(breaks = c("High", "Low"),values=c("#E69F00", "#56B4E9"))
+
+
+
+#t.test(Gbi_CpG_isoforms[Lko_CpG_isoforms$CpGoe_level=="High", "Transcripts"],Lko_CpG_isoforms[Lko_CpG_isoforms$CpGoe_level=="Low", "Transcripts"])
+#aggregate(Transcripts ~ CpGoe_level , data = Gbi_CpG_isoforms, length)
+#aggregate(Transcripts ~ CpGoe_level , data = Gbi_CpG_isoforms, mean)
+
+grid.arrange(BarplotGbi_CpG_isoform, BarplotLko_CpG_isoform, ncol = 2)
+```
+
+
+```{r, CpGoeisoformBoxplot}
+Crickets_CpG_isoforms<-rbind(Gbi_CpG_isoforms,Lko_CpG_isoforms)
+## sort: 1st Low, then High
+Crickets_CpG_isoforms$CpGoe_level <- factor(Crickets_CpG_isoforms$CpGoe_level,levels = c("Low","High"))
+
+BoxPlotCpg<-ggplot(Crickets_CpG_isoforms, aes(x = Spp, y = Transcripts, fill=CpGoe_level)) +
+    geom_boxplot(outlier.shape=NA)+ coord_cartesian(ylim =c(0,3.2))+
+     scale_fill_manual(breaks = c("Low", "High"),values=c("#E69F00","#56B4E9"))
+
+BoxPlotCpg
+```
+
+ 
+
+## CpGoe vs Orthology
+
+Is there any relation between CpGoe and number of orthologs?
+
+
+```{r, AmeHighLow}
+
+Ame_CpG<-CpGoe_insects_b02[CpGoe_insects_b02$Spp=="Apis_mellifera",]
+
+Ame_CpG$'CpGoe_level'<-"NA"
+Ame_CpG$'CpGoe_level'[Ame_CpG$CpGoe>Ame_cpg_threshold ]<-"High"
+Ame_CpG$'CpGoe_level'[Ame_CpG$CpGoe<=Ame_cpg_threshold ]<-"Low"
+
+Ame_CpG$Gene<-sapply(strsplit(as.character(Ame_CpG$ID),'-'), `[`, 2)
+
+
+AmeGbiLko_insects_CpGeo<-rbind(Ame_CpG, Lko_CpG, Gbi_CpG)
+
+## reorder: 1st low, then high
+AmeGbiLko_insects_CpGeo$CpGoe_level <- factor(AmeGbiLko_insects_CpGeo$CpGoe_level,levels = c("Low","High"))
+
+
+
+ggplot(AmeGbiLko_insects_CpGeo, aes(x = CpGoe_level, y = CpGoe, fill=Spp)) +
+  geom_boxplot()
+```
+```{python, preapareOGs, eval=FALSE}
+##### I need to transform OG table to to 2 coumn OG-gene
+## Make a copy of Orthogroups.txt file
+# from shutil import copyfile
+# copyfile("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/Orthofinder/Orthofinder_input_output/V2.2/OrthoFinder/Results_Jul30/Orthogroups/Orthogroups.txt", "/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe//CpGoe_outputs/Orthogroups.txt")
+
+Gene_OG_dict = {}
+with open("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe//CpGoe_outputs/Orthogroups.txt") as f:
+    for line in f:
+       line=line.rstrip()
+       (OG, genes) = line.split(":")
+       geneeList=genes.split()
+       Gene_OG_dict[OG] = geneeList
+
+fout= open("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe//CpGoe_outputs/Orthogroups_list_OG_gene.txt","w+")
+for key in Gene_OG_dict:
+  for value in Gene_OG_dict[key]:
+    fout.write(key+"\t"+value+"\n")
+    
+fout.close()
+
+
+```
+
+```{r, LoadOGlist}
+OG_Gene<-read.delim("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe/CpGoe_outputs/Orthogroups_list_OG_gene.txt", header = FALSE)
+length(unique(OG_Gene$V1)) # should be 59516 (numbe rof OGs)
+```
+
+```{r, AddOGtoSpGlist, results='hide'}
+OG_Gene<-read.delim("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe//CpGoe_outputs/Orthogroups_list_OG_gene.txt", header = FALSE, stringsAsFactors = FALSE)
+colnames(OG_Gene)<-c("OG","Transc")
+length(unique(OG_Gene$V1)) # should be 59516 (numbe rof OGs)
+
+#rename GBI transcripts
+OG_Gene$Transcript<-OG_Gene$Transc
+OG_Gene[OG_Gene$Transcript %like%"Gbi",]$Transcript<-sapply(strsplit(as.character(OG_Gene[OG_Gene$Transc %like%"Gbi",'Transcript']),'Gbi_'), `[`, 2)
+head(OG_Gene)
+OG_Gene[OG_Gene$Transc %like%"GBI",]
+#rename Lko transcripts
+OG_Gene[OG_Gene$Transcript %like%"Lko",]$Transcript<-paste0("Lko_",sapply(strsplit(as.character(OG_Gene[OG_Gene$Transc %like%"Lko",'Transcript']),'Lko_Lko_'), `[`, 2))
+head(OG_Gene)
+OG_Gene[OG_Gene$Transc %like%"Lko",]
+
+# rename Ame transcipts
+Ame_cds_gene_dic<-read.delim("/home/guillem/data_disk/Genomes/Apis_mellifera/Ame_Gene_CDS_dict.txt", header = FALSE, sep=" ")
+head(Ame_cds_gene_dic)
+Ame_cds_gene_dic$LOC<-paste0("Ame_",Ame_cds_gene_dic$V1)
+
+AmeGbiLko_insects_CpGeo_amerenames<-merge(AmeGbiLko_insects_CpGeo, Ame_cds_gene_dic, by.x="Gene", by.y="V2")
+head(AmeGbiLko_insects_CpGeo_amerenames)
+
+OG_Gene[OG_Gene$Transc%like%"Ame",]
+
+Ame_DF<-AmeGbiLko_insects_CpGeo_amerenames[,c("Spp", "Abb","LOC","Len","Gfreq","Cfreq","CGfreq","CpGoe","CpGoe_level","ID")]
+colnames(Ame_DF)<-colnames(AmeGbiLko_insects_CpGeo)
+#remove ame
+dim(AmeGbiLko_insects_CpGeo)
+AmeGbiLko_insects_CpGeo_v2<-AmeGbiLko_insects_CpGeo[!AmeGbiLko_insects_CpGeo$Abb=="Ame",]
+dim(AmeGbiLko_insects_CpGeo_v2)
+# Add Ame with new names
+AmeGbiLko_insects_CpGeo_v3<-rbind(AmeGbiLko_insects_CpGeo_v2, Ame_DF)
+dim(AmeGbiLko_insects_CpGeo_v3)
+
+
+AmeGbiLko_CpGeo_OG<-merge(AmeGbiLko_insects_CpGeo_v3, OG_Gene, by.x="ID", by.y="Transcript")
+
+table(AmeGbiLko_CpGeo_OG$Spp)
+dim(Gbi_CpG) #all matched woth gene and OG
+dim(Lko_CpG) #all matched woth gene and OG
+dim(Ame_CpG) # I lost just 1 gene
+```
+
+
+```{r, UpsetPlotCpGOrthology,results=TRUE, cache=TRUE , message=F, warning=F}
+library(UpSetR)
+Data_for_Upset<-list(Gbi_High=AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="High" & AmeGbiLko_CpGeo_OG$Abb=="Gbi", "OG"],
+                     Lko_High=AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="High" & AmeGbiLko_CpGeo_OG$Abb=="Lko", "OG"],
+                     Ame_High=AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="High" & AmeGbiLko_CpGeo_OG$Abb=="Ame", "OG"],
+                     Gbi_Low=AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="Low" & AmeGbiLko_CpGeo_OG$Abb=="Gbi", "OG"],
+                     Lko_Low=AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="Low" & AmeGbiLko_CpGeo_OG$Abb=="Lko", "OG"],
+                     Ame_Low=AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="Low" & AmeGbiLko_CpGeo_OG$Abb=="Ame", "OG"])
+
+Data_for_Upset_list<-fromList(Data_for_Upset)
+
+Upset_raw<-upset(Data_for_Upset_list,  group.by="degree", nintersects = 80,cutoff=100,
+       sets = c("Ame_High","Lko_High", "Gbi_High","Ame_Low", "Lko_Low","Gbi_Low"  ),keep.order = TRUE,
+        queries = list(list(query = intersects, params = list("Gbi_Low"),  color = "purple", active = T, query.name = "Low  - No horthology"), 
+                  list(query = intersects, params = list("Lko_Low"),  color = "purple", active = T, query.name = "Low  - No horthology") ,
+                  list(query = intersects, params = list("Ame_Low"),  color = "purple", active = T, query.name = "Low  - No horthology"),
+                  list(query = intersects, params = list("Gbi_High"),  color = "orange", active = T, query.name = "High - No horthology"), 
+                  list(query = intersects, params = list("Lko_High"),  color = "orange", active = T, query.name = "High - No horthology") ,
+                  list(query = intersects, params = list("Ame_High"),  color = "orange", active = T, query.name = "High - No horthology"),
+                  list(query = intersects, params = list("Gbi_Low",  "Lko_Low",  "Ame_Low"),  color = "blue", active = T, query.name = "Low CpGoe in all 3"), 
+                  list(query = intersects, params = list("Gbi_High", "Lko_High", "Ame_High"), color = "red", active = T, query.name = "High CpGoe in all 3")),
+       query.legend = "bottom")
+Upset_raw
+
+
+Data_for_Upset_list_filterzeros<-Data_for_Upset_list[!rowSums(Data_for_Upset_list)==1,]
+
+Upset_filrtered<-upset(Data_for_Upset_list_filterzeros,  order.by = "freq", nintersects = 10,
+       sets = c("Ame_High","Lko_High", "Gbi_High","Ame_Low", "Lko_Low","Gbi_Low"  ), keep.order = TRUE,
+       queries = list(list(query = intersects, params = list("Gbi_Low",  "Lko_Low",  "Ame_Low"),  color = "blue", active = T), 
+                     list(query = intersects, params = list("Gbi_High", "Lko_High", "Ame_High"), color = "red", active = T)) )
+Upset_filrtered
+
+
+Upset_Publication<-upset(Data_for_Upset_list,  group.by="degree", nintersects = 24,cutoff=100,
+       sets = c("Ame_High","Lko_High", "Gbi_High","Ame_Low", "Lko_Low","Gbi_Low"  ),  keep.order = TRUE,
+       #sets.bar.color = c("#56B4E9","#56B4E9","#56B4E9", "#E69F00", "#E69F00", "#E69F00"),  
+        queries = list(list(query = intersects, params = list("Gbi_Low"),  color = "#E69F00", active = T, query.name = "Low  - No horthology"),
+                  list(query = intersects, params = list("Lko_Low"),  color = "#E69F00", active = T, query.name = "Low  - No horthology") ,
+                  list(query = intersects, params = list("Ame_Low"),  color = "#E69F00", active = T, query.name = "Low  - No horthology"),
+                  list(query = intersects, params = list("Gbi_High"),  color = "#56B4E9", active = T, query.name = "High - No horthology"),
+                  list(query = intersects, params = list("Lko_High"),  color = "#56B4E9", active = T, query.name = "High - No horthology") ,
+                  list(query = intersects, params = list("Ame_High"),  color = "#56B4E9", active = T, query.name = "High - No horthology"),
+                  list(query = intersects, params = list("Gbi_Low",  "Lko_Low",  "Ame_Low"),  color = "#E69F00", active = T, query.name = "Low CpGoe in all 3"),
+                  list(query = intersects, params = list("Gbi_High", "Lko_High", "Ame_High"), color = "#56B4E9", active = T, query.name = "High CpGoe in all 3")),
+       query.legend = "bottom")
+Upset_Publication
+
+# png( "plots/Upset_Publication.png", width = 8, height = 5, units = "in", res=300)
+#   Upset_Publication
+# dev.off()
+
+
+#E69F00 orange,#56B4E9 blue
+Data_for_Upset_list_filterzeros<-Data_for_Upset_list[!rowSums(Data_for_Upset_list)==1,]
+
+Upset_filrtered<-upset(Data_for_Upset_list_filterzeros,  order.by = "freq", nintersects = 10,
+       sets = c("Ame_High","Lko_High", "Gbi_High","Ame_Low", "Lko_Low","Gbi_Low"  ), keep.order = TRUE,
+       queries = list(list(query = intersects, params = list("Gbi_Low",  "Lko_Low",  "Ame_Low"),  color = "blue", active = T), 
+                     list(query = intersects, params = list("Gbi_High", "Lko_High", "Ame_High"), color = "red", active = T)) )
+Upset_filrtered
+
+
+
+```
+
+
+```{r, moreCpgOrthology}
+AmeGbiLko_CpGeo_OG_Boxplot<-reshape2::melt(AmeGbiLko_CpGeo_OG[,c("Spp","CpGoe_level","OG")])
+head(AmeGbiLko_CpGeo_OG_Boxplot)
+## sort: 1st Low, then High
+AmeGbiLko_CpGeo_OG_Boxplot$CpGoe_level <- factor(AmeGbiLko_CpGeo_OG_Boxplot$CpGoe_level,levels = c("Low","High"))
+
+
+
+p10 <- ggplot(AmeGbiLko_CpGeo_OG_Boxplot, aes(x = Spp, y = ..count.., fill=CpGoe_level)) +
+              geom_bar( position = "dodge") +ylab("number of genes") + 
+              scale_fill_manual(breaks = c("High", "Low"),values=c("#E69F00", "#56B4E9"))
+p10
+
+
+head(AmeGbiLko_CpGeo_OG)
+
+
+Cpglevel_OG_porp<-t(data.frame(
+                  Gbi_High_Ame_High=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"]     ))[2],
+                  Gbi_Low_Ame_Low=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"]     ))[2],
+                  Gbi_High_Lko_High=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"]     ))[2],
+                  Gbi_Low_Lko_Low=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"]     ))[2],
+                  Lko_High_Ame_High=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"]     ))[2],
+                  Lko_Low_Ame_Low=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"]     ))[2],
+                  Lko_High_Gbi_High=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"]     ))[2],
+                  Lko_Low_Gbi_Low=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"]     ))[2],
+                  Ame_High_Gbi_High=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"]     ))[2],
+                  Ame_Low_Gbi_Low=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"]     ))[2],
+                  Ame_High_Lko_High=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko" & AmeGbiLko_CpGeo_OG$CpGoe_level=="High"  ,"OG"]     ))[2],
+                  Ame_Low_Lko_Low=prop.table(table(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"] %in%
+                                    AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko" & AmeGbiLko_CpGeo_OG$CpGoe_level=="Low"  ,"OG"]     ))[2]
+                  ))
+
+Cpglevel_OG_porp2<-data.frame(
+               row.names = rownames(Cpglevel_OG_porp),
+               Freqs=as.numeric(Cpglevel_OG_porp), 
+               Species1=sapply(strsplit(rownames(Cpglevel_OG_porp),'_'), `[`, 1), 
+               Cpg_levels=paste(sapply(strsplit(rownames(Cpglevel_OG_porp),'_'), `[`, 2),sapply(strsplit(rownames(Cpglevel_OG_porp),'_'), `[`, 4), sep="_" )) 
+
+Cpglevel_OG_porp2$Cpg_levels <- factor(Cpglevel_OG_porp2$Cpg_levels,levels = c("Low_Low","High_High","High_Low" , "Low_High"))
+
+
+
+ggplot(data=Cpglevel_OG_porp2, aes(x= reorder(rownames(Cpglevel_OG_porp2), desc(rownames(Cpglevel_OG_porp2))),group=Species1, y=Freqs, fill=Cpg_levels)) +
+  geom_bar(stat="identity" )+ scale_y_continuous(labels = scales::percent)+ theme(axis.text.x = element_text(angle = 45, hjust = 1))  +
+  scale_fill_manual(breaks = c("High_High", "Low_Low"),values=c("#E69F00", "#56B4E9"))
+
+
+
+```
+
+
+
+## CpGoe Functional Analysis
+
+Gene orthology Enrichment Analysis.
+
+```{r, prepareGO, warning=FALSE, cache=TRUE,  results=FALSE}
+library("topGO")
+
+## Gbi
+conGbi <- dbConnect(RSQLite::SQLite(), "/home/guillem/data_disk/Cricket_genome_annotation/GBI_Genome_v3/Protein_coding_genes/Annotation_Files/GBI_V3_Annotations.v2.db")
+Gbi_Gene_GO <-dbFetch( dbSendQuery(conGbi, "SELECT GeneID,GOterms FROM genes"))
+dbDisconnect(conGbi)
+
+dim(Gbi_Gene_GO)
+write.table(Gbi_Gene_GO, "/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe//Gbi_Gene_GO.csv", row.names = FALSE, sep="\t", quote=FALSE)
+geneID2GO_gbi <- readMappings("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe//Gbi_Gene_GO.csv")
+head(geneID2GO_gbi)
+
+## Lko
+conLko <- dbConnect(RSQLite::SQLite(), "/home/guillem/data_disk/Cricket_genome_annotation/Laupala_kohalensis_annotation/Protein_coding_genes/Annotation_Files/Lko_Annotations.v2.db")
+Lko_Gene_GO <-dbFetch( dbSendQuery(conLko, "SELECT GeneID,GOterms FROM genes"))
+dbDisconnect(conLko)
+
+dim(Lko_Gene_GO)
+write.table(Lko_Gene_GO, "/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe//Lko_Gene_GO.csv", row.names = FALSE, sep="\t", quote=FALSE)
+geneID2GO_lko <- readMappings("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe//Lko_Gene_GO.csv")
+head(geneID2GO_lko)
+
+## Ame
+### For Ame, I ran Iprscan to longest prot per geneql
+head(Ame_CpG)
+geneID2GO_Ame <- readMappings("/home/guillem/data_disk/Genomes/Apis_mellifera/Ame_Gene_GO_dict.txt")
+head(geneID2GO_Ame)
+```
+
+
+### *Gryllus bimaculatus* CpGoe GO-ernichment
+
+I select genes belonging to the low CpGoe peak (methylated genes). And eprform a GOI-enrichment vs all genes.
+
+#### Gbi Low CpGoe
+
+```{r, GOBP_Gbi,  results=TRUE, cache=TRUE, message=F, warning=F}
+
+## Low CpG
+dim(Gbi_CpG)#68 less than the 17871, because NA & 0>0CpGoe<0 removed
+GBi_LowCPG<-Gbi_CpG[Gbi_CpG$CpGoe_level=="Low", "Gene" ]
+#length(GBi_LowCPG)
+#table(Gbi_CpG$CpGoe_level)
+#prop.table(table(Gbi_CpG$CpGoe_level))
+
+## selected genes/universe
+geneListGbiLow=factor(as.integer(Gbi_CpG$Gene %in%  GBi_LowCPG))  ## being or not in the selected ones as Factor
+names(geneListGbiLow)= Gbi_CpG$Gene
+#head(geneListGbiLow)
+#table(geneListGbiLow)
+                  
+Gbi_Low_GOdataBP <- new("topGOdata",
+                    description = "Gbi Low CpGoe", ontology = "BP",
+                    allGenes =geneListGbiLow, 
+                    geneSel = Gbi_CpG$Gene,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_gbi)
+
+Gbi_Low_GOdataBP
+
+Gbi_Low_weight01_fisher_BP=runTest(Gbi_Low_GOdataBP, algorithm='weight01', statistic='fisher') 
+#Gbi_Low_weight01_fisher_BP
+
+allGO=usedGO(Gbi_Low_GOdataBP)
+
+res_Gbi_Low_weight0_fisher_BP=GenTable(Gbi_Low_GOdataBP, weightFisher=Gbi_Low_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+#head(res_Gbi_Low_weight0_fisher_BP)
+
+#write.csv(res_Gbi_Low_weight0_fisher_BP, "res_Gbi_Low_weight0_fisher_BP")
+
+```
+
+
+#### Gbi High CpGoe
+
+
+```{r, GOBP_Gbi_high, results=TRUE, cache=TRUE, message=F, warning=F}
+
+# High CpG
+GBi_HighCPG<-Gbi_CpG[Gbi_CpG$CpGoe_level=="High", "Gene" ]
+#length(GBi_HighCPG)
+
+
+## selected genes/universe
+geneListGbiHigh=factor(as.integer(Gbi_CpG$Gene %in%   GBi_HighCPG))  ## being or not in the s;leected ones as Factor
+names(geneListGbiHigh)= Gbi_CpG$Gene
+#head(geneListGbiHigh)
+#table(geneListGbiHigh)
+
+
+
+Gbi_High_GOdataBP <- new("topGOdata",
+                    description = "Gbi High CpGoe", ontology = "BP",
+                    allGenes =geneListGbiHigh, 
+                    geneSel = Gbi_CpG$Gene,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_gbi)
+
+Gbi_High_GOdataBP
+
+
+Gbi_High_weight01_fisher_BP=runTest(Gbi_High_GOdataBP, algorithm='weight01', statistic='fisher') 
+Gbi_High_weight01_fisher_BP
+
+allGO=usedGO(Gbi_High_GOdataBP)
+
+
+res_Gbi_High_weight0_fisher_BP=GenTable(Gbi_High_GOdataBP, weightFisher=Gbi_High_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+#head(res_Gbi_High_weight0_fisher_BP)
+
+#write.csv(res_Gbi_High_weight0_fisher_BP, "res_Gbi_High_weight0_fisher_BP")
+
+```
+
+### *Laupala kohalensis* CpGoe GO-ernichment
+
+#### Lko Low CpGoe
+
+```{r, GOBP_Lko, results=TRUE, cache=TRUE, message=F, warning=F}
+
+## Lko Low CpG
+Lko_LowCPG<-Lko_CpG[Lko_CpG$CpGoe_level=="Low", "Gene" ]
+length(Lko_LowCPG)
+table(Lko_CpG$CpGoe_level)
+
+
+## selected genes/universe
+geneListLkoLow=factor(as.integer(Lko_CpG$Gene %in%  Lko_LowCPG))  ## being or not in the s;leected ones as Factor
+names(geneListLkoLow)= Lko_CpG$Gene
+#head(geneListLkoLow)
+#table(geneListLkoLow)
+                  
+Lko_Low_GOdataBP <- new("topGOdata",
+                    description = "Lko Low CpGoe", ontology = "BP",
+                    allGenes =geneListLkoLow, 
+                    geneSel = Lko_CpG$Gene,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_lko)
+
+Lko_Low_GOdataBP
+
+
+Lko_Low_weight01_fisher_BP=runTest(Lko_Low_GOdataBP, algorithm='weight01', statistic='fisher') 
+#Lko_Low_weight01_fisher_BP
+
+allGO=usedGO(Lko_Low_GOdataBP)
+
+res_Lko_Low_weight0_fisher_BP=GenTable(Lko_Low_GOdataBP, weightFisher=Lko_Low_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+#head(res_Lko_Low_weight0_fisher_BP)
+
+#write.csv(res_Lko_Low_weight0_fisher_BP, "res_Lko_Low_weight0_fisher_BP.csv")
+
+```
+#### Lko High CpGoe
+
+```{r, GOBP_Lko_high,  results=TRUE, cache=TRUE, message=F, warning=F}
+
+# High CpG
+Lko_HighCPG<-Lko_CpG[Lko_CpG$CpGoe_level=="High", "Gene" ]
+#length(Lko_HighCPG)
+
+
+## selected genes/universe
+geneListLkoHigh=factor(as.integer(Lko_CpG$Gene %in%   Lko_HighCPG))  ## being or not in the s;leected ones as Factor
+names(geneListLkoHigh)= Lko_CpG$Gene
+#head(geneListLkoHigh)
+#table(geneListLkoHigh)
+
+
+
+Lko_High_GOdataBP <- new("topGOdata",
+                    description = "Lko High CpGoe", ontology = "BP",
+                    allGenes =geneListLkoHigh, 
+                    geneSel = Lko_CpG$Gene,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_lko)
+
+Lko_High_GOdataBP
+
+
+Lko_High_weight01_fisher_BP=runTest(Lko_High_GOdataBP, algorithm='weight01', statistic='fisher') 
+Lko_High_weight01_fisher_BP
+
+allGO=usedGO(Lko_High_GOdataBP)
+
+
+res_Lko_High_weight0_fisher_BP=GenTable(Lko_High_GOdataBP, weightFisher=Lko_High_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+#head(res_Lko_High_weight0_fisher_BP)
+
+
+#write.csv(res_Lko_High_weight0_fisher_BP, "res_Lko_High_weight0_fisher_BP")
+
+
+```
+
+
+### *Apis mellifera* CpGoe GO-ernichment
+
+#### Ame Low CpGoe
+
+```{r, GOBP_AmeLow, results=TRUE, cache=TRUE, message=F, warning=F}
+
+##I need to add gene name LOCXXX to Ame_CpG, bc LOC isthe one in GO table
+#head(Ame_CpG)
+
+Ame_cds_gene_dic<-read.delim("/home/guillem/data_disk/Genomes/Apis_mellifera/Ame_Gene_CDS_dict.txt", header = FALSE, sep=" ")
+#head(Ame_cds_gene_dic)
+colnames(Ame_cds_gene_dic)<-c("LOC","XM")
+Ame_CpG_LOC<-merge(Ame_CpG,Ame_cds_gene_dic, by.x="Gene", by.y="XM" )
+
+#5274 genes with Goterms
+#table(Ame_CpG_LOC$LOC%in%names(geneID2GO_Ame))       
+
+## Ame Low CpG
+Ame_LowCPG<-Ame_CpG_LOC[Ame_CpG_LOC$CpGoe_level=="Low", "LOC" ]
+#length(Ame_LowCPG)
+#table(Ame_CpG_LOC$CpGoe_level)
+
+
+## selected genes/universe
+geneListAmeLow=factor(as.integer(Ame_CpG_LOC$LOC %in%  Ame_LowCPG))  ## being or not in the s;leected ones as Factor
+names(geneListAmeLow)= Ame_CpG_LOC$LOC
+#head(geneListAmeLow)
+#table(geneListAmeLow)
+
+
+Ame_Low_GOdataBP <- new("topGOdata",
+                    description = "Ame Low CpGoe", ontology = "BP",
+                    allGenes =geneListAmeLow, 
+                    geneSel = Ame_CpG$Gene,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_Ame)
+
+Ame_Low_GOdataBP
+
+
+Ame_Low_weight01_fisher_BP=runTest(Ame_Low_GOdataBP, algorithm='weight01', statistic='fisher') 
+#Ame_Low_weight01_fisher_BP
+
+allGO=usedGO(Ame_Low_GOdataBP)
+
+res_Ame_Low_weight0_fisher_BP=GenTable(Ame_Low_GOdataBP, weightFisher=Ame_Low_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+#head(res_Ame_Low_weight0_fisher_BP)
+
+#write.csv(res_Ame_Low_weight0_fisher_BP, "res_Ame_Low_weight0_fisher_BP.csv")
+
+```
+
+#### Ame High CpGoe
+
+```{r, GOBP_AmeHigh, results=TRUE, cache=TRUE, message=F, warning=F}
+## Ame High CpG
+Ame_HighCPG<-Ame_CpG_LOC[Ame_CpG_LOC$CpGoe_level=="High", "LOC" ]
+#length(Ame_HighCPG)
+#table(Ame_CpG_LOC$CpGoe_level)
+
+
+## selected genes/universe
+geneListAmeHigh=factor(as.integer(Ame_CpG_LOC$LOC %in%  Ame_HighCPG))  ## being or not in the s;leected ones as Factor
+names(geneListAmeHigh)= Ame_CpG_LOC$LOC
+#head(geneListAmeHigh)
+#table(geneListAmeHigh)
+
+
+Ame_High_GOdataBP <- new("topGOdata",
+                    description = "Ame High CpGoe", ontology = "BP",
+                    allGenes =geneListAmeHigh, 
+                    geneSel = Ame_CpG$Gene,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_Ame)
+
+Ame_High_GOdataBP
+
+
+Ame_High_weight01_fisher_BP=runTest(Ame_High_GOdataBP, algorithm='weight01', statistic='fisher') 
+#Ame_High_weight01_fisher_BP
+
+allGO=usedGO(Ame_High_GOdataBP)
+
+res_Ame_High_weight0_fisher_BP=GenTable(Ame_High_GOdataBP, weightFisher=Ame_High_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+#head(res_Ame_High_weight0_fisher_BP)
+
+#write.csv(res_Ame_High_weight0_fisher_BP, "res_Ame_High_weight0_fisher_BP.csv")
+
+```
+
+#### CpGoe Level Change: Crickets low vs Ame High 
+
+It is a bit complicated: 
+
+  *1- I get all the Orthorgroups (OGs) from genes that are Low in Ceach cricket and High in Ame
+  *2- The intersection will select those OGs common in the 3 lists
+  *4- There are some OGs that contain genes that are both High and low in same insect. I remove them and I get same number of OGs shown in the UpsetPlot
+  *5- To do the GO-enrichment, I need to have genes. I use the list of 969 OGs to retrieve its geens in Gbi.
+  *6- Each OG can have multiple genes... So I end p retrieveing 1022 Gbi genes for tyhe GO-nerichment analysis.
+  
+Conclusion, tehre are 1022 genes in Gbi that belong to 969 OGs that inCrickets are only low and in Lko are only High.
+
+```{r, GOBP_CricketLowAmeHigh, results=TRUE, cache=TRUE, message=F, warning=F}
+
+
+CricketLow_AmeHigh<-Reduce(intersect, list(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="Low" & AmeGbiLko_CpGeo_OG$Abb=="Gbi", "OG" ], 
+                                          AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="Low" & AmeGbiLko_CpGeo_OG$Abb=="Lko", "OG" ],
+                                         AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="High" & AmeGbiLko_CpGeo_OG$Abb=="Ame", "OG" ]))
+length(unique(CricketLow_AmeHigh))
+
+# same OG can't be in any otehr convination:
+## filter out OGs which in the same insect are High and low
+Gbihighlow<-Reduce(intersect, list(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="Low" & AmeGbiLko_CpGeo_OG$Abb=="Gbi", "OG" ], 
+                                   AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="High" & AmeGbiLko_CpGeo_OG$Abb=="Gbi", "OG" ] ))
+
+Lkohighlow<-Reduce(intersect, list(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="Low" & AmeGbiLko_CpGeo_OG$Abb=="Lko", "OG" ], 
+                               AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="High" & AmeGbiLko_CpGeo_OG$Abb=="Lko", "OG" ] ))
+
+Amehighlow<-Reduce(intersect, list(AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="Low" & AmeGbiLko_CpGeo_OG$Abb=="Ame", "OG" ], 
+                               AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$CpGoe_level=="High" & AmeGbiLko_CpGeo_OG$Abb=="Ame", "OG" ] ))
+
+CricketLow_AmeHigh_2<-CricketLow_AmeHigh[!CricketLow_AmeHigh %in% c(Gbihighlow, Lkohighlow, Amehighlow) ]
+length(CricketLow_AmeHigh_2)
+
+
+
+### GO terms based on GBI genes
+
+Gbisubtable<-AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi",]
+CricketLow_AmeHigh_Gbigenes<-Gbisubtable[Gbisubtable$OG %in% CricketLow_AmeHigh_2, ]
+dim(CricketLow_AmeHigh_Gbigenes)## the 1022 OGs contain 3054 cricket genes
+table(CricketLow_AmeHigh_Gbigenes$CpGoe_level)
+
+
+
+## selected genes/universe
+geneListCrickLow_AmeHigh=factor(as.integer(Gbi_CpG$Gene %in%  CricketLow_AmeHigh_Gbigenes$Gene))  ## being or not in the selected ones as Factor
+names(geneListCrickLow_AmeHigh)= Gbi_CpG$Gene
+table(geneListCrickLow_AmeHigh)
+                  
+Crick_Low_Ame_High_GOdataBP <- new("topGOdata",
+                    description = "Crick Low and Ame High CpGoe (based on Gbi Functons)", ontology = "BP",
+                    allGenes =geneListCrickLow_AmeHigh, 
+                    geneSel = Gbi_CpG$Gene,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_gbi)
+
+Crick_Low_Ame_High_GOdataBP
+
+Crick_Low_Ame_High_weight01_fisher_BP=runTest(Crick_Low_Ame_High_GOdataBP, algorithm='weight01', statistic='fisher') 
+
+
+allGO=usedGO(Crick_Low_Ame_High_GOdataBP)
+
+Crick_Low_Ame_High_weight0_fisher_BP=GenTable(Crick_Low_Ame_High_GOdataBP, weightFisher=Crick_Low_Ame_High_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+
+head(Crick_Low_Ame_High_weight0_fisher_BP)
+
+#write.csv(Crick_Low_Ame_High_weight0_fisher_BP, "Crick_Low_Ame_High_weight0_fisher_BP.csv")
+
+```
+
+
+### CpGoe level Change on Crickets vs Apis
+
+
+
+## Plot GO-enrichment
+
+
+ Define function:
+ 
+```{r, PlotFUnctiom,results=TRUE, cache=TRUE , message=F, warning=F}
+library(ggwordcloud)
+library('RColorBrewer')
+
+WordCloud_GOs<-function(TopGO_result,condition, pvalue){
+
+    GOs_toPlot<-TopGO_result[TopGO_result$weightFisher<pvalue,]
+    GOs_toPlot$weightFisher<-as.numeric(GOs_toPlot$weightFisher)
+    
+    rnacolors<-colorRampPalette(brewer.pal(4, "Reds")[3:4])
+    rnagenes<-rownames(GOs_toPlot[GOs_toPlot$Term %like% "RNA" | GOs_toPlot$Term %like% "transcription",])
+    GOs_toPlot[rnagenes,"colores"]<-  rnacolors(length(rnagenes))
+    
+    dnacolors<-colorRampPalette(brewer.pal(4, "Blues")[3:4])
+    dnagenes<-rownames(GOs_toPlot[GOs_toPlot$Term %like% "DNA" | GOs_toPlot$Term %like% "repair"| GOs_toPlot$Term %like% "nucleotide"|GOs_toPlot$Term %like% "histone" |     GOs_toPlot$Term %like% "methylation",])
+    GOs_toPlot[dnagenes,"colores"]<-dnacolors(length(dnagenes))
+    
+    proteincolors<-colorRampPalette(brewer.pal(4, "Oranges")[3:4])
+    proteingenes<-rownames(GOs_toPlot[GOs_toPlot$Term %like% "protein" | GOs_toPlot$Term %like% "translation"| GOs_toPlot$Term %like% "ribosome",])
+    GOs_toPlot[proteingenes,"colores"]<-proteincolors(length(proteingenes))
+    
+    
+    metacolors<-colorRampPalette(brewer.pal(4, "Greens")[3:4])
+    metagenes<-rownames(GOs_toPlot[GOs_toPlot$Term %like% "catabol" | GOs_toPlot$Term %like% "metabol" | GOs_toPlot$Term %like% "biosyn" ,])
+    GOs_toPlot[metagenes,"colores"]<-metacolors(length(metagenes))
+    
+    
+    sensorycolors<-colorRampPalette(brewer.pal(4, "Purples")[3:4])
+    sensorygenes<-rownames(GOs_toPlot[GOs_toPlot$Term %like% "sensory" | GOs_toPlot$Term %like% "perception"| GOs_toPlot$Term %like% "neuro",])
+    GOs_toPlot[sensorygenes,"colores"]<-sensorycolors(length(sensorygenes))
+    
+    GOs_toPlot[is.na(GOs_toPlot$colores),"colores"]<-"darkgrey"
+    
+    
+    ## add whole Term
+    library(GO.db )
+    GOs_toPlot$LonTerm<-Term(GOs_toPlot$GO.ID)
+    
+    
+    
+    set.seed(42)
+    Low_Cloud<-ggplot(
+        GOs_toPlot,
+        aes(
+          label = strmultline(LonTerm, ratio = 0.4 ), 
+          size = Significant/Annotated
+        )
+      ) +
+        geom_text_wordcloud_area(colour = GOs_toPlot$colores) +
+        scale_size_area() +
+        theme_minimal()+
+        theme(        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = "transparent",colour = NA),
+        plot.background = element_rect(fill = "transparent",colour = NA)
+        )+
+        ggtitle(condition)
+         
+    Low_Cloud
+}
+```
+
+```{r, plotGOtermWordsCloud, warning=FALSE, fig.width=12, fig.height=20}
+
+
+
+
+
+grid.arrange(WordCloud_GOs(res_Gbi_High_weight0_fisher_BP,"G. bimaculatus - High CpGoe" ,0.05),
+             WordCloud_GOs(res_Gbi_Low_weight0_fisher_BP,"G. bimaculatus - Low CpGoe", 0.05),
+             
+             WordCloud_GOs(res_Lko_High_weight0_fisher_BP,"L. kohalensis - High CpGoe" ,0.05),
+             WordCloud_GOs(res_Lko_Low_weight0_fisher_BP,"L. kohalensis- Low CpGoe", 0.05),
+             
+            WordCloud_GOs(res_Ame_High_weight0_fisher_BP,"A. mellifera - High CpGoe", 0.05),
+            WordCloud_GOs(res_Ame_Low_weight0_fisher_BP,"A. mellifera - Low CpGoe", 0.05),
+            
+            WordCloud_GOs(Crick_Low_Ame_High_weight0_fisher_BP,"Crickets Low and Apis High CpGoe -- Functions form Gbi genes", 0.05),
+            
+             ncol = 2)
+
+
+
+# ggsave("plots/Wordcloud_GbiHigh.png", WordCloud_GOs(res_Gbi_High_weight0_fisher_BP,"G. bimaculatus - High CpGoe" ,0.05) , bg = "transparent")
+# ggsave("plots/Wordcloud_Gbilow.png",WordCloud_GOs(res_Gbi_Low_weight0_fisher_BP,"G. bimaculatus - Low CpGoe", 0.05), bg = "transparent")
+#              
+# ggsave("plots/Wordcloud_Lkohigh.png",WordCloud_GOs(res_Lko_High_weight0_fisher_BP,"L. kohalensis - High CpGoe" ,0.05), bg = "transparent")
+# ggsave("plots/Wordcloud_LkoLow.png",WordCloud_GOs(res_Lko_Low_weight0_fisher_BP,"L. kohalensis- Low CpGoe", 0.05), bg = "transparent")
+#              
+# ggsave("plots/Wordcloud_AmeHigh.png",WordCloud_GOs(res_Ame_High_weight0_fisher_BP,"A. mellifera - High CpGoe", 0.05), bg = "transparent")
+# ggsave("plots/Wordcloud_AmeLow.png",WordCloud_GOs(res_Ame_Low_weight0_fisher_BP,"A. mellifera - Low CpGoe", 0.05), bg = "transparent")
+#             
+# ggsave("plots/Wordcloud_CircketsHighAmeLow.png", WordCloud_GOs(Crick_Low_Ame_High_weight0_fisher_BP,"Crickets Low and Apis High CpGoe -- Functions form Gbi genes", 0.05), bg = "transparent")
+
+
+```
+
+## GO-enrichment UpSet
+
+
+
+```{r, GOenrUpsetPlot,results=TRUE, cache=TRUE , message=F, warning=F}
+library(UpSetR)
+
+Gbi_High_GO<-res_Gbi_High_weight0_fisher_BP[res_Gbi_High_weight0_fisher_BP$weightFisher<0.05,]
+Gbi_Low_GO<-res_Gbi_Low_weight0_fisher_BP[res_Gbi_Low_weight0_fisher_BP$weightFisher<0.05,]
+
+Lko_High_GO<-res_Lko_High_weight0_fisher_BP[res_Lko_High_weight0_fisher_BP$weightFisher<0.05,]
+Lko_Low_GO<-res_Lko_Low_weight0_fisher_BP[res_Lko_Low_weight0_fisher_BP$weightFisher<0.05,]
+
+Ame_High_GO<-res_Ame_High_weight0_fisher_BP[res_Ame_High_weight0_fisher_BP$weightFisher<0.05,]
+Ame_Low_GO<-res_Ame_Low_weight0_fisher_BP[res_Ame_Low_weight0_fisher_BP$weightFisher<0.05,]
+
+
+Data_for_Upset_GO<-list(Gbi_High_GO=Gbi_High_GO$GO.ID,
+                        Gbi_Low_GO=Gbi_Low_GO$GO.ID,
+                        Lko_High_GO=Lko_High_GO$GO.ID,
+                        Lko_Low_GO=Lko_Low_GO$GO.ID,
+                        Ame_High_GO=Ame_High_GO$GO.ID,
+                        Ame_Low_GO=Ame_Low_GO$GO.ID)
+
+Data_for_Upset_list_GO<-fromList(Data_for_Upset_GO)
+
+
+Upset_raw_GO<-upset(Data_for_Upset_list_GO,  order.by = "freq", nintersects = 50,cutoff=100, nsets = 6)
+Upset_raw_GO
+
+
+
+
+
+Upset_2_GO<-upset(Data_for_Upset_list_GO,  group.by="degree", nintersects = 24,cutoff=100,
+       sets = c("Ame_High_GO","Lko_High_GO", "Gbi_High_GO","Ame_Low_GO", "Lko_Low_GO","Gbi_Low_GO"  ),  keep.order = TRUE,
+       query.legend = "bottom")
+Upset_2_GO
+
+
+
+Data_for_Upset_list_GO_filterzero<-Data_for_Upset_list_GO[!rowSums(Data_for_Upset_list_GO)==1,]
+
+Upset_filrtered_SIpaper_GOs<-upset(Data_for_Upset_list_GO_filterzero,  order.by = "freq", nintersects = 100, nsets = 6)
+Upset_filrtered_SIpaper_GOs
+
+png( file="plots/Upset_filrtered_SIpaper_GOs.png", width = 8, height = 5, units = "in", res=300)
+  Upset_filrtered_SIpaper_GOs
+dev.off()
+
+
+intersect(intersect(Gbi_High_GO$GO.ID,Lko_High_GO$GO.ID ),Ame_High_GO$GO.ID )
+intersect(intersect(Gbi_High_GO$Term,Lko_High_GO$Term ),Ame_High_GO$Term )
+
+
+intersect(intersect(Gbi_Low_GO$GO.ID,Lko_Low_GO$GO.ID ),Ame_Low_GO$GO.ID )
+intersect(intersect(Gbi_Low_GO$Term,Lko_Low_GO$Term ),Ame_Low_GO$Term )
+
+intersect(Gbi_Low_GO$Term,Lko_High_GO$Term )
+```
+
+## CpGoe vs dNds
+
+In chunk *'python, preapareOGs'* I had prepared the OG-Gene dictionary. ANd i have all the info in 1 variable: AmeGbiLko_CpGeo_OG
+
+
+```{r, loadDnDs, warning=FALSE}
+#Omega_Gbi_Lko<-read.csv("/home/guillem/WorkingDir/dNdS/Omega_Gbi_Lko.csv", header = F, sep = "\t", stringsAsFactors = FALSE)
+#Omega_Gbi_Ame<-read.csv("/home/guillem/WorkingDir/dNdS/Omega_Gbi_Ame.csv", header = F, sep = "\t", stringsAsFactors = FALSE)
+#Omega_Lko_Ame<-read.csv("/home/guillem/WorkingDir/dNdS/Omega_Lko_Ame.csv", header = F, sep = "\t", stringsAsFactors = FALSE)
+#Omega_Gbi_Lko$OG<-sapply(strsplit(as.character(Omega_Gbi_Lko$V1),'_'), `[`, 2)
+#colnames(Omega_Gbi_Lko)<-c("longname","Omega","OG")
+#Omega_Gbi_Ame$OG<-sapply(strsplit(as.character(Omega_Gbi_Ame$V1),'_'), `[`, 2)
+#colnames(Omega_Gbi_Ame)<-c("longname","Omega","OG")
+#Omega_Lko_Ame$OG<-sapply(strsplit(as.character(Omega_Lko_Ame$V1),'_'), `[`, 2)
+#colnames(Omega_Lko_Ame)<-c("longname","Omega","OG")
+Omega_Gbi_Lko<-read.csv("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/dNdS/Omega_Gbi_Lko_v2.csv", header = T, sep = "\t", stringsAsFactors = FALSE)
+Omega_Gbi_Ame<-read.csv("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/dNdS/Omega_Gbi_Ame_v2.csv", header = T, sep = "\t", stringsAsFactors = FALSE)
+Omega_Lko_Ame<-read.csv("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/dNdS/Omega_Lko_Ame_v2.csv", header = T, sep = "\t", stringsAsFactors = FALSE)
+
+Omega_Gbi_Lko$OG<-sapply(strsplit(as.character(Omega_Gbi_Lko$key),'_'), `[`, 2)
+Omega_Gbi_Ame$OG<-sapply(strsplit(as.character(Omega_Gbi_Ame$key),'_'), `[`, 2)
+Omega_Lko_Ame$OG<-sapply(strsplit(as.character(Omega_Lko_Ame$key),'_'), `[`, 2)
+
+dim(Omega_Gbi_Lko)
+dim(Omega_Gbi_Ame)
+dim(Omega_Lko_Ame)
+
+```
+
+```{r, AddOGtoCpG, warning=FALSE, fig.width=12, fig.height=20}
+dim(Omega_Gbi_Lko)
+Omega_Gbi_Lko_CpG0<-merge(Omega_Gbi_Lko, AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi",c("OG", "CpGoe","CpGoe_level")], by.x="OG", by.y="OG", all.y=FALSE)
+Omega_Gbi_Lko_CpG<-merge(Omega_Gbi_Lko_CpG0, AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko",c("OG", "CpGoe","CpGoe_level")], by.x="OG", by.y="OG",suffixes=c("Gbi","Lko"), all.y=FALSE)
+dim(Omega_Gbi_Lko_CpG)#3less, probably filter fphe no na, >0 <2...
+Omega_Gbi_Lko_CpG$Both_CpGlevels<-paste(Omega_Gbi_Lko_CpG$CpGoe_levelGbi, Omega_Gbi_Lko_CpG$CpGoe_levelLko, sep="_")
+prop.table(table(Omega_Gbi_Lko_CpG$Both_CpGlevels))*100
+
+dim(Omega_Gbi_Ame)
+Omega_Gbi_Ame_CpG0<-merge(Omega_Gbi_Ame, AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Gbi",c("OG", "CpGoe","CpGoe_level")], by.x="OG", by.y="OG", all.y=FALSE)
+Omega_Gbi_Ame_CpG<-merge(Omega_Gbi_Ame_CpG0, AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame",c("OG", "CpGoe","CpGoe_level")], by.x="OG", by.y="OG",suffixes=c("Gbi","Ame"), all.y=FALSE)
+dim(Omega_Gbi_Ame_CpG)# 5 less, probably filter fphe no na, >0 <2...
+Omega_Gbi_Ame_CpG$Both_CpGlevels<-paste(Omega_Gbi_Ame_CpG$CpGoe_levelGbi, Omega_Gbi_Ame_CpG$CpGoe_levelAme, sep="_")
+prop.table(table(Omega_Gbi_Ame_CpG$Both_CpGlevels))*100
+
+dim(Omega_Lko_Ame)
+Omega_Lko_Ame_CpG0<-merge(Omega_Lko_Ame, AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Lko",c("OG", "CpGoe","CpGoe_level")], by.x="OG", by.y="OG", all.y=FALSE)
+Omega_Lko_Ame_CpG<-merge(Omega_Lko_Ame_CpG0, AmeGbiLko_CpGeo_OG[AmeGbiLko_CpGeo_OG$Abb=="Ame",c("OG", "CpGoe","CpGoe_level")], by.x="OG", by.y="OG",suffixes=c("Lko","Ame"), all.y=FALSE)
+dim(Omega_Lko_Ame_CpG)#1less, probably filter fphe no na, >0 <2...
+Omega_Lko_Ame_CpG$Both_CpGlevels<-paste(Omega_Lko_Ame_CpG$CpGoe_levelLko, Omega_Lko_Ame_CpG$CpGoe_levelAme, sep="_")
+prop.table(table(Omega_Lko_Ame_CpG$Both_CpGlevels))*100
+Omega_Lko_Ame_CpG["Error" %in% Omega_Lko_Ame_CpG$Omega,]
+
+##remove genes failed dnds
+Omega_Gbi_Lko_CpG<-Omega_Gbi_Lko_CpG[!Omega_Gbi_Lko_CpG$Omega %like% "None",]
+Omega_Gbi_Ame_CpG<-Omega_Gbi_Ame_CpG[!Omega_Gbi_Ame_CpG$Omega %like% "None",]
+Omega_Lko_Ame_CpG<-Omega_Lko_Ame_CpG[!Omega_Lko_Ame_CpG$Omega %like% "None",]
+
+
+Omega_Gbi_Lko_CpG$Both_CpGlevels <- as.factor(Omega_Gbi_Lko_CpG$Both_CpGlevels)
+Omega_Gbi_Ame_CpG$Both_CpGlevels <- as.factor(Omega_Gbi_Ame_CpG$Both_CpGlevels)
+Omega_Lko_Ame_CpG$Both_CpGlevels <- as.factor(Omega_Lko_Ame_CpG$Both_CpGlevels)
+
+Omega_Gbi_Lko_CpG$Both_CpGlevels <- factor(Omega_Gbi_Lko_CpG$Both_CpGlevels,levels = c("Low_Low","High_High","High_Low" , "Low_High"))
+Omega_Gbi_Ame_CpG$Both_CpGlevels <- factor(Omega_Gbi_Ame_CpG$Both_CpGlevels,levels = c("Low_Low","High_High","High_Low" , "Low_High"))
+Omega_Lko_Ame_CpG$Both_CpGlevels <- factor(Omega_Lko_Ame_CpG$Both_CpGlevels,levels = c("Low_Low","High_High","High_Low" , "Low_High"))
+
+```
+
+
+```{r, PlotCpgDnDds1, warning=FALSE, fig.width=12, fig.height=20}
+
+
+GbiLko_dnDsCpGBocplot<-ggplot(subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_boxplot() +
+                        ggtitle("dN/dS (omega) Gbi-Lko") 
+
+GbiAme_dnDsCpGBocplot<-ggplot(subset(Omega_Gbi_Ame_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_boxplot() +
+                        ggtitle("dN/dS (omega) Gbi-Ame")
+
+LkoAme_dnDsCpGBocplot<-ggplot(subset(Omega_Lko_Ame_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_boxplot() +
+                        ggtitle("dN/dS (omega) Lko-Ame")
+
+
+GbiLko_dnDsCpGBocplot_nout<-ggplot(subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_boxplot(outlier.size=-1) +
+                        ggtitle("dN/dS (omega) Gbi-Lko") +  coord_cartesian(ylim = c(0, 0.4))
+
+GbiAme_dnDsCpGBocplot_nout<-ggplot(subset(Omega_Gbi_Ame_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_boxplot(outlier.size=-1) +
+                        ggtitle("dN/dS (omega) Gbi-Ame")+  coord_cartesian(ylim = c(0, 0.4))
+
+LkoAme_dnDsCpGBocplot_nout<-ggplot(subset(Omega_Lko_Ame_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_boxplot(outlier.size=-1,width=0.1) +
+                        ggtitle("dN/dS (omega) Lko-Ame")+  coord_cartesian(ylim =  c(0, 0.4))
+
+
+
+GbiLko_dnDsCpGBviolinplot<-ggplot(subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_violin()+
+                        geom_boxplot(width=0.1) +
+                        ggtitle("dN/dS (omega) Gbi-Lko")
+                
+
+GbiAme_dnDsCpGBviolinplot<-ggplot(subset(Omega_Gbi_Ame_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_violin()+
+                        geom_boxplot(width=0.1) +
+                        ggtitle("dN/dS (omega) Gbi-Ame")
+
+LkoAme_dnDsCpGBviolinplot<-ggplot(subset(Omega_Lko_Ame_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_violin()+
+                        geom_boxplot(width=0.1) +
+                        ggtitle("dN/dS (omega) Lko-Ame")
+
+
+GbiLko_dnDsCpGBviolin_nout<-ggplot(subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                         geom_violin()+
+                        geom_boxplot(outlier.size=-1,width=0.1) +
+                        ggtitle("dN/dS (omega) Gbi-Lko") +  coord_cartesian(ylim = c(0, 0.4))
+
+GbiAme_dnDsCpGBviolin_nout<-ggplot(subset(Omega_Gbi_Ame_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                       geom_violin()+
+                        geom_boxplot(outlier.size=-1,width=0.1) +
+                        ggtitle("dN/dS (omega) Gbi-Ame")+  coord_cartesian(ylim = c(0, 0.4))
+
+LkoAme_dnDsCpGBviolin_nout<-ggplot(subset(Omega_Lko_Ame_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_violin()+
+                        geom_boxplot(outlier.size=-1,width=0.1,width=0.1) +
+                        ggtitle("dN/dS (omega) Lko-Ame")+  coord_cartesian(ylim =  c(0, 0.4))
+
+
+
+grid.arrange(GbiLko_dnDsCpGBocplot,GbiAme_dnDsCpGBocplot,LkoAme_dnDsCpGBocplot , 
+             GbiLko_dnDsCpGBocplot_nout,GbiAme_dnDsCpGBocplot_nout,LkoAme_dnDsCpGBocplot_nout , 
+             GbiLko_dnDsCpGBviolinplot, GbiAme_dnDsCpGBviolinplot, LkoAme_dnDsCpGBviolinplot, 
+             GbiLko_dnDsCpGBviolin_nout, GbiAme_dnDsCpGBviolin_nout , LkoAme_dnDsCpGBviolin_nout, ncol = 3)
+
+
+
+
+
+GbiLko_dnDsCpGBviolinplot_forpaper<-ggplot(subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="High_High" | Both_CpGlevels=="Low_Low" ), aes(x=Both_CpGlevels, y=as.numeric(Omega))) +
+                        geom_violin()+
+                        geom_boxplot(width=0.1) +
+                        ggtitle("dN/dS (omega) Gbi-Lko")+
+                        ylab("Omega (dD/dS)")+xlab("CpGo/e level in both insects")
+
+#ggsave("plots/GbiLko_dnDsCpGBviolinplot.png",GbiLko_dnDsCpGBviolinplot_forpaper)
+```
+
+
+
+I have observed that thd dN and dS values with *Apis mellifera* are really high! 99% of them dN or dS higher than 2.... are to far away related, and satuirated with mutations.
+
+
+```{r dnanddsprop}
+dim(Omega_Gbi_Lko_CpG[Omega_Gbi_Lko_CpG$dN > 2 | Omega_Gbi_Lko_CpG$dS > 2, ])[1]/dim(Omega_Gbi_Lko_CpG)[1]*100
+
+dim(Omega_Gbi_Ame_CpG[Omega_Gbi_Ame_CpG$dN > 2 | Omega_Gbi_Ame_CpG$dS > 2, ])[1]/dim(Omega_Gbi_Ame_CpG)[1]*100
+dim(Omega_Lko_Ame_CpG[Omega_Lko_Ame_CpG$dN > 2 | Omega_Lko_Ame_CpG$dS > 2, ])[1]/dim(Omega_Lko_Ame_CpG)[1]*100
+```
+
+
+
+```{r cpgdndstest}
+
+# T-test NOT approproate
+#t.test(subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="High_High")$Omega, subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="Low_Low")$Omega)
+
+## It applies Wilcoxon-Mann-Whitney test (Mann-Whitney one data is not paired)
+wilcox.test(subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="High_High")$Omega, subset(Omega_Gbi_Lko_CpG, Both_CpGlevels=="Low_Low")$Omega, paired=F)
+```
