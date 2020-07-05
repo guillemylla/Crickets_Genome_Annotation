@@ -9,7 +9,7 @@ output:
 
 
 ```{r loadlibs, include=FALSE, cache=FALSE, message=F, warning=F}
-setwd("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe/")
+setwd("CpGoe/")
 library(RSQLite)
 library(Biostrings)
 library(ggplot2)
@@ -42,7 +42,7 @@ Here, I apply a gaussian Mixture model, getb the mean of each curve an caclulate
 ```{r, GbiCpG, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
 
 
-CpGoe_insects<-read.delim("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/CpGoe/CpGoe_outputs/All_insects_CpGpe")
+CpGoe_insects<-read.delim("CpGoe/CpGoe_outputs/All_insects_CpGpe")
 CpGoe_insects<-CpGoe_insects[!is.na(CpGoe_insects$CpGoe),]
 ```
 
@@ -213,21 +213,6 @@ CpGoe_toplotGbi = Gbi_CpG$CpGoe
 CpGoe_toplotGbi<-CpGoe_toplotGbi[!is.na(CpGoe_toplotGbi)]
 mixmdlGbi = normalmixEM(CpGoe_toplotGbi,maxit=20000)
 
-
-##1.96?? wikpedia:
-#95% confidence limits, where x ¯ {\displaystyle {\bar {x}}} {\bar {x}} is equal to the sample mean, S E {\displaystyle SE} SE is equal to the standard error for the sample mean, and 1.96 is the approximate value of the 97.5 percentile point of the normal distribution: 
-# Lambda is the poportion of observations belonging to each distribution
-# SE1=mixmdlGbi$sigma[1]/sqrt(length(CpGoe_toplotGbi)*mixmdlGbi$lambda[1])
-# CI_1_right=mixmdlGbi$mu[1]+(SE1*1.96)
-# CI_1_left=mixmdlGbi$mu[1]-(SE1*1.96)
-# SE2=mixmdlGbi$sigma[2]/sqrt(length(CpGoe_toplotGbi)*mixmdlGbi$lambda[2])
-# CI_2_right=mixmdlGbi$mu[2]+(SE2*1.96)
-# CI_2_left=mixmdlGbi$mu[2]-(SE2*1.96)
- 
-
-# 95%  1.960
-# 99%  2.57
-# 99.5% 2.807
 
  ## Calculating SE using mixtools bootystrap function
 se<-boot.se(mixmdlGbi,B=100)
