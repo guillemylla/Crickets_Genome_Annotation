@@ -6,10 +6,10 @@
 ------
 
 - This repository includes:
-  1. Compilation of scripts used for the *de novo* annotating the genomes of the crickets:
-	 		- [*Gryllus bimaculatus*](G_bimaculatus)
-			- [*Laupala kohalensis*](L_kohalensis)
-  3. Scripts used to analyze these genomes and generate the results for the publication.
+1. Compilation of scripts used for the *de novo* annotating the genomes of the crickets:
+		- [*Gryllus bimaculatus*](G_bimaculatus)
+		- [*Laupala kohalensis*](L_kohalensis)
+2. Scripts used to analyze these genomes and generate the results for the publication.
 
 -----
 
