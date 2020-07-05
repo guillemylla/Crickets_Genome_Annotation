@@ -1,0 +1,106 @@
+---
+title: "dnds_result_analyis"
+author: "Guillem Ylla"
+date: "10/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(data.table)
+```
+
+
+
+```{r, loadDnDs, warning=FALSE}
+Omega_Gbi_Lko<-read.csv("Omega_Gbi_Lko_v2.csv", header = T, sep = "\t", stringsAsFactors = FALSE)
+Omega_Gbi_Ame<-read.csv("Omega_Gbi_Ame_v2.csv", header = T, sep = "\t", stringsAsFactors = FALSE)
+Omega_Lko_Ame<-read.csv("Omega_Lko_Ame_v2.csv", header = T, sep = "\t", stringsAsFactors = FALSE)
+
+Omega_Gbi_Lko$OG<-sapply(strsplit(as.character(Omega_Gbi_Lko$key),'_'), `[`, 2)
+
+Omega_Gbi_Ame$OG<-sapply(strsplit(as.character(Omega_Gbi_Ame$key),'_'), `[`, 2)
+
+Omega_Lko_Ame$OG<-sapply(strsplit(as.character(Omega_Lko_Ame$key),'_'), `[`, 2)
+
+dim(Omega_Gbi_Lko)
+dim(Omega_Gbi_Ame)
+dim(Omega_Lko_Ame)
+```
+
+Remove lines where DnDs or Pal2Nal failed:
+
+
+```{r, filterdnds, warning=FALSE}
+
+##remove genes failed dnds
+Omega_Gbi_Lko_filter1<-Omega_Gbi_Lko[!Omega_Gbi_Lko$Omega %like% "None",]
+Omega_Gbi_Ame_filter1<-Omega_Gbi_Ame[!Omega_Gbi_Ame$Omega %like% "None",]
+Omega_Lko_Ame_filter1<-Omega_Lko_Ame[!Omega_Lko_Ame$Omega %like% "None",]
+
+Omega_Gbi_Lko_filter1$Omega<-as.numeric(Omega_Gbi_Lko_filter1$Omega)
+Omega_Gbi_Lko_filter1$dN<-as.numeric(Omega_Gbi_Lko_filter1$dN)
+Omega_Gbi_Lko_filter1$dS<-as.numeric(Omega_Gbi_Lko_filter1$dS)
+
+Omega_Gbi_Ame_filter1$Omega<-as.numeric(Omega_Gbi_Ame_filter1$Omega)
+Omega_Gbi_Ame_filter1$dN<-as.numeric(Omega_Gbi_Ame_filter1$dN)
+Omega_Gbi_Ame_filter1$dS<-as.numeric(Omega_Gbi_Ame_filter1$dS)
+
+Omega_Lko_Ame_filter1$Omega<-as.numeric(Omega_Lko_Ame_filter1$Omega)
+Omega_Lko_Ame_filter1$dN<-as.numeric(Omega_Lko_Ame_filter1$dN)
+Omega_Lko_Ame_filter1$dS<-as.numeric(Omega_Lko_Ame_filter1$dS)
+
+dim(Omega_Gbi_Lko_filter1)
+dim(Omega_Gbi_Ame_filter1)
+dim(Omega_Lko_Ame_filter1)
+
+
+
+```
+```{r, densityplotsnofilter, warning=FALSE}
+ggplot(Omega_Gbi_Lko_filter1, aes(x=Omega, y=..count..))+
+ geom_histogram(bins = 1000) 
+
+ggplot(Omega_Gbi_Ame_filter1, aes(x=Omega, y=..count..))+
+ geom_histogram(bins = 1000) 
+
+
+ggplot(Omega_Lko_Ame_filter1, aes(x=Omega, y=..count..))+
+ geom_histogram(bins = 1000) 
+
+```
+
+## After filtering
+```{r, saturation, warning=FALSE}
+
+dim(Omega_Gbi_Lko_filter1[Omega_Gbi_Lko_filter1$dN > 2 | Omega_Gbi_Lko_filter1$dS > 2, ])[1]/dim(Omega_Gbi_Lko_filter1)[1]*100
+dim(Omega_Gbi_Ame_filter1[Omega_Gbi_Ame_filter1$dN > 2 | Omega_Gbi_Ame_filter1$dS > 2, ])[1]/dim(Omega_Gbi_Ame_filter1)[1]*100
+dim(Omega_Lko_Ame_filter1[Omega_Lko_Ame_filter1$dN > 2 | Omega_Lko_Ame_filter1$dS > 2, ])[1]/dim(Omega_Lko_Ame_filter1)[1]*100
+
+
+dim(Omega_Gbi_Ame_filter1[!Omega_Gbi_Ame_filter1$dN > 2 & ! Omega_Gbi_Ame_filter1$dS > 2, ])[1]/dim(Omega_Gbi_Ame_filter1)[1]*100
+
+
+Omega_Gbi_Lko_filter2<-Omega_Gbi_Lko_filter1[which(Omega_Gbi_Lko_filter1$dN <= 2 &  Omega_Gbi_Lko_filter1$dS <= 2) ,]
+Omega_Gbi_Ame_filter2<-Omega_Gbi_Ame_filter1[which(Omega_Gbi_Ame_filter1$dN <= 2 &  Omega_Gbi_Ame_filter1$dS <= 2) ,]
+Omega_Lko_Ame_filter2<-Omega_Lko_Ame_filter1[which(Omega_Lko_Ame_filter1$dN <= 2 &  Omega_Lko_Ame_filter1$dS <= 2) ,]
+
+dim(Omega_Gbi_Lko_filter2)
+dim(Omega_Gbi_Ame_filter2)
+dim(Omega_Lko_Ame_filter2)
+
+```
+
+```{r, densityplots, warning=FALSE}
+ggplot(Omega_Gbi_Lko_filter2, aes(x=Omega, y=..count..))+
+ geom_histogram(bins = 1000) 
+
+ggplot(Omega_Gbi_Ame_filter2, aes(x=Omega, y=..count..))+
+ geom_histogram(bins = 1000) 
+
+
+ggplot(Omega_Lko_Ame_filter2, aes(x=Omega, y=..count..))+
+ geom_histogram(bins = 1000) 
+
+```
