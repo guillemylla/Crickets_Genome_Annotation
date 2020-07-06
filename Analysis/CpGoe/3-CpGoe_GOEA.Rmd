@@ -1,0 +1,898 @@
+---
+title: "GO_enrichment_Coe"
+author: "Guillem Ylla"
+date: "8/22/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE,cache=TRUE, message=F, warning=F}
+library(ggplot2)
+library(ggwordcloud)
+library('RColorBrewer')
+library(tagcloud)
+library(mixtools)
+library(data.table)
+library(dplyr)
+library(mixtools)
+library(data.table)
+library(dplyr)
+library("AnnotationDbi")
+library("dplyr")
+library("Rgraphviz")
+knitr::opts_chunk$set(echo = TRUE)
+setwd("GO_enrichment_analysis")
+```
+
+
+Calcualte CpGoe as I did for the poster (data/disk/GbiV3_Analysis/Annotation_stats.rmd)
+
+
+## Gryllus bimaculatus
+ 
+```{r, GbiCpG, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
+library(RSQLite)
+library(Biostrings)
+library(ggplot2)
+# Get all the protein-coding genes from the SQL database
+conGbi <- dbConnect(RSQLite::SQLite(), "GBI_V3_Annotations.v2.db")
+transcripts_dbGbi <-dbFetch( dbSendQuery(conGbi, "SELECT TranscriptID, Sequence FROM Transcripts"))
+
+transcripts_db_stGbi<-DNAStringSet(transcripts_dbGbi[,2], use.names=T)
+
+##freq of each nt
+nt_freqGbi<-oligonucleotideFrequency(transcripts_db_stGbi, 1, as.prob = T)
+
+## freq of each dnt
+Dnt_freqGbi<-dinucleotideFrequency(transcripts_db_stGbi,   as.prob = T )
+GC_contentGbi<-Dnt_freqGbi[,"CG"]
+#hist(GC_contentGbi, breaks=1000)
+
+freqs_tableGbi<-as.data.frame(cbind(nt_freqGbi[,c("G","C")], Dnt_freqGbi[,"CG",drop=F], len=width(transcripts_db_stGbi)))
+rownames(freqs_tableGbi)<-transcripts_dbGbi[,1]
+
+freqs_tableGbi$CpG.oe<-as.numeric(freqs_tableGbi$CG)/(as.numeric(freqs_tableGbi$C)*as.numeric(freqs_tableGbi$G))
+
+#hist(freqs_tableGbi$CpG.oe, breaks=1000)
+CGoe<-plot_protlen_2<-ggplot(freqs_tableGbi, aes(x=(CpG.oe))) + 
+   geom_histogram(bins=1000)+
+   scale_x_continuous(name = "CGo/e") +
+   ggtitle("CGo/e distribution")  +ylab("Number of mRNAs")
+CGoe
+
+```
+
+
+```{r, GbiTestBimoality, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
+## Test for biomdality
+
+
+CpGoe_toplotGbi = freqs_tableGbi$CpG.oe
+CpGoe_toplotGbi<-CpGoe_toplotGbi[!is.na(CpGoe_toplotGbi)]
+mixmdlGbi = normalmixEM(CpGoe_toplotGbi)
+
+
+#means:
+mixmdlGbi$mu
+#standard deviations
+mixmdlGbi$sigma
+
+
+## In ggplots:
+plot_mix_comps <- function(x, mu, sigma, lam) {
+  lam * dnorm(x, mu, sigma)
+}
+
+set.seed(1)
+
+
+
+Bimodal_Gbi<-data.frame(x = mixmdlGbi$x) %>%
+              ggplot() +
+              geom_histogram(aes(x, ..density..),  colour="black", alpha=.8, bins=100) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlGbi$mu[1], mixmdlGbi$sigma[1], lam = mixmdlGbi$lambda[1]),
+                            colour = "#E69F00", lwd = 1) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlGbi$mu[2], mixmdlGbi$sigma[2], lam = mixmdlGbi$lambda[2]),
+                            colour = "#56B4E9", lwd = 1) +
+              geom_vline(xintercept = mixmdlGbi$mu[1], col = "#E69F00", size = .8) + 
+              annotate("text",label=round(mixmdlGbi$mu[1], 3),y=  1.60, x=mixmdlGbi$mu[1] + .3, col="#E69F00",size=4)+
+              geom_vline(xintercept = mixmdlGbi$mu[2], col = "#56B4E9", size = .8)+
+              annotate("text",label=round(mixmdlGbi$mu[2], 3),y=  1.20, x=mixmdlGbi$mu[2] + .3, col="#56B4E9",size=4)+
+             ylab("Density")+xlab("CpGo/e")+ggtitle("CpG observed/expected distribution for Gryllus bimacluatus genes")
+
+
+
+
+### I separate the 2 distributions by the lowest density between means
+gbidata<-ggplot_build(Bimodal_Gbi)$data[[1]]
+gbidata_int<-gbidata[gbidata$x>mixmdlGbi$mu[1] & gbidata$x<mixmdlGbi$mu[2] ,]
+Gbi_cpg_threshold<-gbidata_int[gbidata_int$y==min(gbidata_int$y),]$x
+
+Gbi_cpg_threshold
+
+## add separation line to plot
+Bimodal_Gbi<-Bimodal_Gbi+ geom_vline(xintercept = Gbi_cpg_threshold, col = "red", size = .5)+
+                  annotate("text",label=round(Gbi_cpg_threshold, 3),y=  1.40, x=Gbi_cpg_threshold + .2, col="red",size=4)
+Bimodal_Gbi
+```
+
+
+
+## Laupala kohalensis
+ 
+```{r, LkoCpG, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
+
+# Get all the protein-coding genes from the SQL database
+conLko <- dbConnect(RSQLite::SQLite(), "/home/guillem/data_disk/Cricket_genome_annotation/Laupala_kohalensis_annotation/Protein_coding_genes/Annotation_Files/Lko_Annotations.v2.db")
+transcripts_dbLko <-dbFetch( dbSendQuery(conLko, "SELECT TranscriptID, Sequence FROM Transcripts"))
+
+
+transcripts_db_stLko<-DNAStringSet(transcripts_dbLko[,2], use.names=T)
+
+##freq of each nt
+nt_freqGbi<-oligonucleotideFrequency(transcripts_db_stLko, 1, as.prob = T)
+
+## freq of each dnt
+Dnt_freqLko<-dinucleotideFrequency(transcripts_db_stLko,   as.prob = T )
+GC_contentLko<-Dnt_freqLko[,"CG"]
+
+freqs_tableLko<-as.data.frame(cbind(nt_freqGbi[,c("G","C")], Dnt_freqLko[,"CG",drop=F], len=width(transcripts_db_stLko)))
+rownames(freqs_tableLko)<-transcripts_dbLko[,1]
+
+
+freqs_tableLko$CpG.oe<-as.numeric(freqs_tableLko$CG)/(as.numeric(freqs_tableLko$C)*as.numeric(freqs_tableLko$G))
+
+
+CGoeLko<-ggplot(freqs_tableLko, aes(x=(CpG.oe))) + 
+   geom_histogram(bins=1000)+
+   scale_x_continuous(name = "CGo/e") +
+   ggtitle("CGo/e distribution")  +ylab("Number of mRNAs")+ggtitle("Laupala kohalensis")
+CGoeLko
+
+```
+
+
+```{r, LkoTestBimoality, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
+## Test for biomdality
+CpGoe_toplotLko = freqs_tableLko$CpG.oe
+CpGoe_toplotLko<-CpGoe_toplotLko[!is.na(CpGoe_toplotLko)]
+mixmdlLko = normalmixEM(CpGoe_toplotLko)
+
+
+#means:
+mixmdlLko$mu
+#standard deviations
+mixmdlLko$sigma
+
+
+## In ggplots:
+plot_mix_comps <- function(x, mu, sigma, lam) {
+  lam * dnorm(x, mu, sigma)
+}
+
+set.seed(1)
+
+
+Bimodal_Lko<-data.frame(x = mixmdlLko$x) %>%
+              ggplot() +
+              geom_histogram(aes(x, ..density..),  colour="black", alpha=.8, bins=100) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlLko$mu[1], mixmdlLko$sigma[1], lam = mixmdlLko$lambda[1]),
+                            colour = "#E69F00", lwd = 1) +
+              stat_function(geom = "line", fun = plot_mix_comps,
+                            args = list(mixmdlLko$mu[2], mixmdlLko$sigma[2], lam = mixmdlLko$lambda[2]),
+                            colour = "#56B4E9", lwd = 1) +
+              geom_vline(xintercept = mixmdlLko$mu[1], col = "#E69F00", size = .8) + 
+              annotate("text",label=round(mixmdlLko$mu[1], 3),y=  1.45, mixmdlLko$mu[1] + .25, col="#E69F00",size=4)+
+              #geom_text(aes(label=round(mixmdlLko$mu[1], 3),y=  1.45, x=mixmdlLko$mu[1] + .25),    vjust=-1,col="#E69F00",size=4)+
+              geom_vline(xintercept = mixmdlLko$mu[2], col = "#56B4E9", size = .8)+
+              annotate("text",label=round(mixmdlLko$mu[2], 3),y=  1.20, mixmdlLko$mu[2] + .25, col="#56B4E9",size=4)+
+              #geom_text(aes(label=round(mixmdlLko$mu[2], 3),y=  1.20, x=mixmdlLko$mu[2] + .25),    vjust=-1,col="#56B4E9",size=4)+
+              ylab("Density")+xlab("CpGo/e")+ggtitle("CpG observed/expected distribution for Laupala kohalensis genes")
+
+### I separate the 2 distributions by the lowest density between means
+lkodata<-ggplot_build(Bimodal_Lko)$data[[1]]
+lkodata_int<-lkodata[lkodata$x>mixmdlLko$mu[1] & lkodata$x<mixmdlLko$mu[2] ,]
+Lko_cpg_threshold<-lkodata_int[lkodata_int$y==min(lkodata_int$y),]$x
+
+Lko_cpg_threshold
+
+## add separation line to plot
+Bimodal_Lko<-Bimodal_Lko+ geom_vline(xintercept = Lko_cpg_threshold, col = "red", size = .5) +
+                          annotate("text",label=round(Lko_cpg_threshold, 3),y=  1.3, x=Lko_cpg_threshold + .2, col="red",size=4)
+                          #geom_text(aes(label=round(Lko_cpg_threshold, 3),y=  1.30, x=Lko_cpg_threshold + .3),vjust=-1,col="red",size=4)
+Bimodal_Lko
+```
+
+
+
+## GO Enrichment analysis Gryllus bimaculatus
+
+```{r, Select_highowcpg, echo=TRUE, results=TRUE, cache=TRUE, message=F, warning=F}
+## Gbi
+freqs_tableGbi_2<-freqs_tableGbi[!is.na(freqs_tableGbi$CpG.oe),]
+
+freqs_tableGbi_2$'CpGoe_level'<-"NA"
+freqs_tableGbi_2$'CpGoe_level'[freqs_tableGbi_2$CpG.oe>Gbi_cpg_threshold ]<-"High"
+freqs_tableGbi_2$'CpGoe_level'[freqs_tableGbi_2$CpG.oe<=Gbi_cpg_threshold ]<-"Low"
+
+table(freqs_tableGbi_2$CpGoe_level)
+
+
+
+BocplotGbi<-ggplot(freqs_tableGbi_2, aes(x=CpGoe_level, y=CpG.oe, fill=CpGoe_level)) +
+  geom_boxplot()+ggtitle("Gbi CpG high vs low")
+BocplotGbi
+
+prop.table(table(freqs_tableGbi_2$CpGoe_level))*100
+
+summary(freqs_tableGbi_2[freqs_tableGbi_2$CpGoe_level=="High", "CpG.oe"])
+summary(freqs_tableGbi_2[freqs_tableGbi_2$CpGoe_level=="Low", "CpG.oe"])
+
+t.test(freqs_tableGbi_2[freqs_tableGbi_2$CpGoe_level=="High", "CpG.oe"],freqs_tableGbi_2[freqs_tableGbi_2$CpGoe_level=="Low", "CpG.oe"])
+
+
+```
+
+```{r, Lko_Select_highowcpg, echo=TRUE, results=TRUE, cache=TRUE, message=F, warning=F}
+## Lko
+freqs_tableLko_2<-freqs_tableLko[!is.na(freqs_tableLko$CpG.oe),]
+
+freqs_tableLko_2$'CpGoe_level'<-"NA"
+freqs_tableLko_2$'CpGoe_level'[freqs_tableLko_2$CpG.oe>Lko_cpg_threshold ]<-"High"
+freqs_tableLko_2$'CpGoe_level'[freqs_tableLko_2$CpG.oe<=Lko_cpg_threshold ]<-"Low"
+
+table(freqs_tableLko_2$CpGoe_level)
+prop.table(table(freqs_tableLko_2$CpGoe_level))*100
+
+ 
+
+BocplotLko<-ggplot(freqs_tableLko_2, aes(x=CpGoe_level, y=CpG.oe, fill=CpGoe_level)) +
+  geom_boxplot()+ggtitle("Lko CpG high vs low")
+BocplotLko
+
+
+summary(freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="High", "CpG.oe"])
+summary(freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="Low", "CpG.oe"])
+
+t.test(freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="High", "CpG.oe"],freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="Low", "CpG.oe"])
+
+
+```
+
+GO_universe_Gbi.tsv and  GO_universe_Lko.tsv from: 
+
+
+https://localhost:8888/notebooks/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/GO_enrichment_analysis/Prepare_for_GO_analysis.ipynb
+
+```{r, loadGOs_Table, echo=TRUE, results=FALSE, cache=TRUE, message=F, warning=F}
+library("topGO")
+
+# Gbi universe
+GBI_Universe_table<-read.table("GO_universe_Gbi.tsv", stringsAsFactors = FALSE)
+dim(GBI_Universe_table) 
+# Lko universe
+LKO_Universe_table<-read.table("GO_universe_Lko.tsv", stringsAsFactors = FALSE)
+dim(LKO_Universe_table) 
+
+## Go -gene mappings
+geneID2GO_gbi <- readMappings(file = "GO_universe_Gbi.tsv")
+geneID2GO_lko <- readMappings(file = "GO_universe_Lko.tsv")
+
+```
+
+
+```{r, GOBP_Gbi, echo=TRUE, results=FALSE, cache=TRUE, message=F, warning=F}
+## Low CpG
+
+GBi_LowCPG<-rownames(freqs_tableGbi_2[freqs_tableGbi_2$CpGoe_level=="Low", ])
+length(GBi_LowCPG)
+#table(freqs_tableGbi_2$CpGoe_level)
+
+## selected genes/universe
+geneList=factor(as.integer(GBI_Universe_table$V1 %in%  GBi_LowCPG))  ## being or not in the s;leected ones as Factor
+names(geneList)= GBI_Universe_table$V1
+head(geneList)
+table(geneList)
+                  
+Gbi_Low_GOdataBP <- new("topGOdata",
+                    description = "Gbi Low CpGoe", ontology = "BP",
+                    allGenes =geneList, 
+                    geneSel = GBI_Universe_table$V1,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_gbi)
+
+Gbi_Low_GOdataBP
+```
+
+```{r, GbiLow_TopGo, echo=TRUE, results=TRUE, cache=TRUE , message=F, warning=F}
+Gbi_Low_weight01_fisher_BP=runTest(Gbi_Low_GOdataBP, algorithm='weight01', statistic='fisher') 
+Gbi_Low_weight01_fisher_BP
+
+allGO=usedGO(Gbi_Low_GOdataBP)
+
+res_Gbi_Low_weight0_fisher_BP=GenTable(Gbi_Low_GOdataBP, weightFisher=Gbi_Low_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+head(res_Gbi_Low_weight0_fisher_BP)
+
+#write.csv(res_Gbi_Low_weight0_fisher_BP, "res_Gbi_Low_weight0_fisher_BP.csv")
+
+```
+
+
+```{r, GOBP_Gbi_high, echo=TRUE, results=TRUE, cache=TRUE, message=F, warning=F}
+# High CpG
+GBi_HighCPG<-rownames(freqs_tableGbi_2[freqs_tableGbi_2$CpGoe_level=="High", ])
+length(GBi_HighCPG)
+
+## selected genes/universe
+geneListHigh=factor(as.integer(GBI_Universe_table$V1 %in%  GBi_HighCPG))  ## being or not in the s;leected ones as Factor
+names(geneListHigh)= GBI_Universe_table$V1
+head(geneListHigh)
+table(geneListHigh)
+                  
+Gbi_High_GOdataBP <- new("topGOdata",
+                    description = "Gbi High CpGoe", ontology = "BP",
+                    allGenes =geneListHigh, 
+                    geneSel = GBI_Universe_table$V1,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_gbi)
+
+Gbi_High_GOdataBP
+```
+
+```{r, GbiHigh_TopGo, echo=TRUE, results=TRUE, cache=TRUE , message=F, warning=F}
+
+allGO=usedGO(Gbi_High_GOdataBP)
+
+res_Gbi_High_weight0_fisher_BP=GenTable(Gbi_High_GOdataBP, weightFisher=Gbi_High_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+head(res_Gbi_High_weight0_fisher_BP)
+
+#write.csv(res_Gbi_High_weight0_fisher_BP, "res_Gbi_High_weight0_fisher_BP.csv")
+```
+
+
+
+## GO Enrichment analysis Laupala kohalensis
+
+```{r, Select_highowcpgLko, echo=TRUE, results=FALSE, cache=TRUE, message=F, warning=F}
+## Lko
+freqs_tableLko_2<-freqs_tableLko[!is.na(freqs_tableLko$CpG.oe),]
+
+freqs_tableLko_2$'CpGoe_level'<-"NA"
+freqs_tableLko_2$'CpGoe_level'[freqs_tableLko_2$CpG.oe>Lko_cpg_threshold ]<-"High"
+freqs_tableLko_2$'CpGoe_level'[freqs_tableLko_2$CpG.oe<=Lko_cpg_threshold ]<-"Low"
+
+table(freqs_tableLko_2$CpGoe_level)
+
+
+
+BocplotLko<-ggplot(freqs_tableLko_2, aes(x=CpGoe_level, y=CpG.oe, fill=CpGoe_level)) +
+  geom_boxplot()+ggtitle("Lko CpG high vs low")
+BocplotLko
+
+
+summary(freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="High", "CpG.oe"])
+summary(freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="Low", "CpG.oe"])
+
+t.test(freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="High", "CpG.oe"],freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="Low", "CpG.oe"])
+
+
+```
+
+
+```{r, GOBP_Lko, echo=TRUE, results=FALSE, cache=TRUE, message=F, warning=F}
+library("AnnotationDbi")
+library("dplyr")
+library("Rgraphviz")
+
+
+## Low CpG
+
+Lko_LowCPG<-rownames(freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="Low", ])
+length(Lko_LowCPG)
+table(freqs_tableLko_2$CpGoe_level)
+
+## selected genes/universe
+geneList=factor(as.integer(LKO_Universe_table$V1 %in%  Lko_LowCPG))  ## being or not in the s;leected ones as Factor
+names(geneList)= LKO_Universe_table$V1
+head(geneList)
+table(geneList)
+                  
+Lko_Low_GOdataBP <- new("topGOdata",
+                    description = "Lko Low CpGoe", ontology = "BP",
+                    allGenes =geneList, 
+                    geneSel = LKO_Universe_table$V1,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_lko)
+
+Lko_Low_GOdataBP
+```
+
+```{r, LkoLow_TopGo, echo=TRUE, results=TRUE, cache=TRUE , message=F, warning=F}
+
+Lko_Low_weight01_fisher_BP=runTest(Lko_Low_GOdataBP, algorithm='weight01', statistic='fisher') 
+Lko_Low_weight01_fisher_BP
+
+allGO=usedGO(Lko_Low_GOdataBP)
+
+res_Lko_Low_weight0_fisher_BP=GenTable(Lko_Low_GOdataBP, weightFisher=Lko_Low_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+head(res_Lko_Low_weight0_fisher_BP)
+
+#write.csv(res_Lko_Low_weight0_fisher_BP, "res_Lko_Low_weight0_fisher_BP.csv")
+
+```
+
+
+```{r, GOBP_Lko_high, echo=TRUE, results=FALSE, cache=TRUE, message=F, warning=F}
+
+# High CpG
+Lko_HighCPG<-rownames(freqs_tableLko_2[freqs_tableLko_2$CpGoe_level=="High", ])
+length(Lko_HighCPG)
+table(freqs_tableLko_2$CpGoe_level)
+
+## selected genes/universe
+geneListHigh=factor(as.integer(LKO_Universe_table$V1 %in%  Lko_HighCPG))  ## being or not in the s;leected ones as Factor
+names(geneListHigh)= LKO_Universe_table$V1
+head(geneListHigh)
+table(geneListHigh)
+                  
+Lko_High_GOdataBP <- new("topGOdata",
+                    description = "Lko High CpGoe", ontology = "BP",
+                    allGenes =geneListHigh, 
+                    geneSel = Lko_Universe_table$V1,
+                    nodeSize = 1,
+                    annot = annFUN.gene2GO,
+                    gene2GO =geneID2GO_lko)
+
+Lko_High_GOdataBP
+
+
+```
+
+```{r, LkoHigh_TopGo, echo=TRUE, results=TRUE, cache=TRUE , message=F, warning=F}
+Lko_High_weight01_fisher_BP=runTest(Lko_High_GOdataBP, algorithm='weight01', statistic='fisher') 
+Lko_High_weight01_fisher_BP
+
+allGO=usedGO(Lko_High_GOdataBP)
+
+res_Lko_High_weight0_fisher_BP=GenTable(Lko_High_GOdataBP, weightFisher=Lko_High_weight01_fisher_BP, orderBy='weightFisher', topNodes=length(allGO))
+head(res_Lko_High_weight0_fisher_BP)
+
+
+
+#write.csv(res_Lko_High_weight0_fisher_BP, "res_Lko_High_weight0_fisher_BP.csv")
+```
+
+
+```{r, GbiPlotLOW, echo=TRUE, results=TRUE, cache=TRUE , message=F, warning=F}
+library(ggwordcloud)
+library('RColorBrewer')
+
+res_Gbi_Low_toPlot<-res_Gbi_Low_weight0_fisher_BP[res_Gbi_Low_weight0_fisher_BP$weightFisher<0.05,]
+res_Gbi_Low_toPlot$weightFisher<-as.numeric(res_Gbi_Low_toPlot$weightFisher)
+
+rnacolors<-colorRampPalette(brewer.pal(4, "Reds")[3:4])
+rnagenes<-rownames(res_Gbi_Low_toPlot[res_Gbi_Low_toPlot$Term %like% "RNA" | res_Gbi_Low_toPlot$Term %like% "transcription",])
+res_Gbi_Low_toPlot[rnagenes,"colores"]<-  rnacolors(length(rnagenes))
+
+dnacolors<-colorRampPalette(brewer.pal(4, "Blues")[3:4])
+dnagenes<-rownames(res_Gbi_Low_toPlot[res_Gbi_Low_toPlot$Term %like% "DNA" | res_Gbi_Low_toPlot$Term %like% "repair"| res_Gbi_Low_toPlot$Term %like% "nucleotide"|res_Gbi_Low_toPlot$Term %like% "histone" | res_Gbi_Low_toPlot$Term %like% "methylation",])
+res_Gbi_Low_toPlot[dnagenes,"colores"]<-dnacolors(length(dnagenes))
+
+proteincolors<-colorRampPalette(brewer.pal(4, "Oranges")[3:4])
+proteingenes<-rownames(res_Gbi_Low_toPlot[res_Gbi_Low_toPlot$Term %like% "protein" | res_Gbi_Low_toPlot$Term %like% "translation"| res_Gbi_Low_toPlot$Term %like% "ribosome",])
+res_Gbi_Low_toPlot[proteingenes,"colores"]<-proteincolors(length(proteingenes))
+
+
+metacolors<-colorRampPalette(brewer.pal(4, "Greens")[3:4])
+metagenes<-rownames(res_Gbi_Low_toPlot[res_Gbi_Low_toPlot$Term %like% "catabol" | res_Gbi_Low_toPlot$Term %like% "metabol" | res_Gbi_Low_toPlot$Term %like% "biosyn" ,])
+res_Gbi_Low_toPlot[metagenes,"colores"]<-metacolors(length(metagenes))
+
+
+sensorycolors<-colorRampPalette(brewer.pal(4, "Purples")[3:4])
+sensorygenes<-rownames(res_Gbi_Low_toPlot[res_Gbi_Low_toPlot$Term %like% "sensory" | res_Gbi_Low_toPlot$Term %like% "perception"| res_Gbi_Low_toPlot$Term %like% "neuro",])
+res_Gbi_Low_toPlot[sensorygenes,"colores"]<-sensorycolors(length(sensorygenes))
+
+res_Gbi_Low_toPlot[is.na(res_Gbi_Low_toPlot$colores),"colores"]<-"darkgrey"
+
+
+## add whole Term
+library(GO.db )
+res_Gbi_Low_toPlot$LonTerm<-Term(res_Gbi_Low_toPlot$GO.ID)
+
+
+
+set.seed(42)
+Gbi_Low_Cloud<-ggplot(
+    res_Gbi_Low_toPlot,
+    aes(
+      label = strmultline(LonTerm, ratio = 0.4 ), 
+      size = Significant/Annotated
+    )
+  ) +
+    geom_text_wordcloud_area(colour = res_Gbi_Low_toPlot$colores) +
+    scale_size_area() +
+    theme_minimal()+
+    ggtitle("Gbi - Low CpG")
+     
+#Gbi_Low_Cloud
+
+```
+
+
+
+```{r, GbiPlotHIIGH, echo=TRUE, results=TRUE, cache=TRUE , message=F, warning=F}
+res_Gbi_High_toPlot<-res_Gbi_High_weight0_fisher_BP[res_Gbi_High_weight0_fisher_BP$weightFisher<0.05,]
+res_Gbi_High_toPlot$weightFisher<-as.numeric(res_Gbi_High_toPlot$weightFisher)
+
+rnacolors<-colorRampPalette(brewer.pal(4, "Reds")[3:4])
+rnagenes<-rownames(res_Gbi_High_toPlot[res_Gbi_High_toPlot$Term %like% "RNA" | res_Gbi_High_toPlot$Term %like% "transcription",])
+res_Gbi_High_toPlot[rnagenes,"colores"]<-  rnacolors(length(rnagenes))
+
+dnacolors<-colorRampPalette(brewer.pal(4, "Blues")[3:4])
+dnagenes<-rownames(res_Gbi_High_toPlot[res_Gbi_High_toPlot$Term %like% "DNA" | res_Gbi_High_toPlot$Term %like% "repair"| res_Gbi_High_toPlot$Term %like% "nucleotide"|res_Gbi_High_toPlot$Term %like% "histone" | res_Gbi_High_toPlot$Term %like% "methylation",])
+res_Gbi_High_toPlot[dnagenes,"colores"]<-dnacolors(length(dnagenes))
+
+proteincolors<-colorRampPalette(brewer.pal(4, "Oranges")[3:4])
+proteingenes<-rownames(res_Gbi_High_toPlot[res_Gbi_High_toPlot$Term %like% "protein" | res_Gbi_High_toPlot$Term %like% "translation"| res_Gbi_High_toPlot$Term %like% "ribosome",])
+res_Gbi_High_toPlot[proteingenes,"colores"]<-proteincolors(length(proteingenes))
+
+
+metacolors<-colorRampPalette(brewer.pal(4, "Greens")[3:4])
+metagenes<-rownames(res_Gbi_High_toPlot[res_Gbi_High_toPlot$Term %like% "catabol" | res_Gbi_High_toPlot$Term %like% "metabol" | res_Gbi_High_toPlot$Term %like% "biosyn" ,])
+res_Gbi_High_toPlot[metagenes,"colores"]<-metacolors(length(metagenes))
+
+
+sensorycolors<-colorRampPalette(brewer.pal(4, "Purples")[3:4])
+sensorygenes<-rownames(res_Gbi_High_toPlot[res_Gbi_High_toPlot$Term %like% "sensory" | res_Gbi_High_toPlot$Term %like% "perception"| res_Gbi_High_toPlot$Term %like% "neuro",])
+res_Gbi_High_toPlot[sensorygenes,"colores"]<-sensorycolors(length(sensorygenes))
+
+
+
+res_Gbi_High_toPlot[is.na(res_Gbi_High_toPlot$colores),"colores"]<-"darkgrey"
+
+## add whole Term
+library(GO.db )
+res_Gbi_High_toPlot$LonTerm<-Term(res_Gbi_High_toPlot$GO.ID)
+
+
+set.seed(42)
+Gbi_High_Cloud<-ggplot(
+    res_Gbi_High_toPlot,
+    aes(
+      label = strmultline(LonTerm, ratio = 0.4 ), 
+      size = Significant/Annotated
+    )
+  ) +
+    geom_text_wordcloud_area(colour = res_Gbi_High_toPlot$colores) +
+    scale_size_area() +
+    theme_minimal()+
+    ggtitle("Gbi - High CpG")
+     
+#Gbi_High_Cloud
+
+```
+
+```{r, LkoPlotLOW, echo=TRUE, results=TRUE, cache=TRUE , message=F, warning=F}
+
+res_Lko_Low_toPlot<-res_Lko_Low_weight0_fisher_BP[res_Lko_Low_weight0_fisher_BP$weightFisher<0.05,]
+res_Lko_Low_toPlot$weightFisher<-as.numeric(res_Lko_Low_toPlot$weightFisher)
+
+rnacolors<-colorRampPalette(brewer.pal(4, "Reds")[3:4])
+rnagenes<-rownames(res_Lko_Low_toPlot[res_Lko_Low_toPlot$Term %like% "RNA" | res_Lko_Low_toPlot$Term %like% "transcription",])
+res_Lko_Low_toPlot[rnagenes,"colores"]<-  rnacolors(length(rnagenes))
+
+dnacolors<-colorRampPalette(brewer.pal(4, "Blues")[3:4])
+dnagenes<-rownames(res_Lko_Low_toPlot[res_Lko_Low_toPlot$Term %like% "DNA" | res_Lko_Low_toPlot$Term %like% "repair"| res_Lko_Low_toPlot$Term %like% "nucleotide"|res_Lko_Low_toPlot$Term %like% "histone" | res_Lko_Low_toPlot$Term %like% "methylation",])
+res_Lko_Low_toPlot[dnagenes,"colores"]<-dnacolors(length(dnagenes))
+
+proteincolors<-colorRampPalette(brewer.pal(4, "Oranges")[3:4])
+proteingenes<-rownames(res_Lko_Low_toPlot[res_Lko_Low_toPlot$Term %like% "protein" | res_Lko_Low_toPlot$Term %like% "translation"| res_Lko_Low_toPlot$Term %like% "ribosome",])
+res_Lko_Low_toPlot[proteingenes,"colores"]<-proteincolors(length(proteingenes))
+
+
+metacolors<-colorRampPalette(brewer.pal(4, "Greens")[3:4])
+metagenes<-rownames(res_Lko_Low_toPlot[res_Lko_Low_toPlot$Term %like% "catabol" | res_Lko_Low_toPlot$Term %like% "metabol" | res_Lko_Low_toPlot$Term %like% "biosyn" ,])
+res_Lko_Low_toPlot[metagenes,"colores"]<-metacolors(length(metagenes))
+
+
+sensorycolors<-colorRampPalette(brewer.pal(4, "Purples")[3:4])
+sensorygenes<-rownames(res_Lko_Low_toPlot[res_Lko_Low_toPlot$Term %like% "sensory" | res_Lko_Low_toPlot$Term %like% "perception"| res_Lko_Low_toPlot$Term %like% "neuro",])
+res_Lko_Low_toPlot[sensorygenes,"colores"]<-sensorycolors(length(sensorygenes))
+
+res_Lko_Low_toPlot[is.na(res_Lko_Low_toPlot$colores),"colores"]<-"darkgrey"
+
+## add whole Term
+library(GO.db )
+res_Lko_Low_toPlot$LonTerm<-Term(res_Lko_Low_toPlot$GO.ID)
+
+
+
+set.seed(42)
+Lko_Low_Cloud<-ggplot(
+    res_Lko_Low_toPlot,
+    aes(
+      label = strmultline(LonTerm, ratio = 0.4 ), 
+      size = Significant/Annotated
+    )
+  ) +
+    geom_text_wordcloud_area(colour = res_Lko_Low_toPlot$colores) +
+    scale_size_area() +
+    theme_minimal()+
+    ggtitle("Lko - Low CpG")
+     
+#Lko_Low_Cloud
+
+```
+
+
+
+```{r, LkoPlotHIIGH, echo=TRUE, results=TRUE, cache=TRUE , message=F, warning=F}
+res_Lko_High_toPlot<-res_Lko_High_weight0_fisher_BP[res_Lko_High_weight0_fisher_BP$weightFisher<0.05,]
+res_Lko_High_toPlot$weightFisher<-as.numeric(res_Lko_High_toPlot$weightFisher)
+
+rnacolors<-colorRampPalette(brewer.pal(4, "Reds")[3:4])
+rnagenes<-rownames(res_Lko_High_toPlot[res_Lko_High_toPlot$Term %like% "RNA" | res_Lko_High_toPlot$Term %like% "transcription",])
+res_Lko_High_toPlot[rnagenes,"colores"]<-  rnacolors(length(rnagenes))
+
+dnacolors<-colorRampPalette(brewer.pal(4, "Blues")[3:4])
+dnagenes<-rownames(res_Lko_High_toPlot[res_Lko_High_toPlot$Term %like% "DNA" | res_Lko_High_toPlot$Term %like% "repair"| res_Lko_High_toPlot$Term %like% "nucleotide"|res_Lko_High_toPlot$Term %like% "histone" | res_Lko_High_toPlot$Term %like% "methylation",])
+res_Lko_High_toPlot[dnagenes,"colores"]<-dnacolors(length(dnagenes))
+
+proteincolors<-colorRampPalette(brewer.pal(4, "Oranges")[3:4])
+proteingenes<-rownames(res_Lko_High_toPlot[res_Lko_High_toPlot$Term %like% "protein" | res_Lko_High_toPlot$Term %like% "translation"| res_Lko_High_toPlot$Term %like% "ribosome",])
+res_Lko_High_toPlot[proteingenes,"colores"]<-proteincolors(length(proteingenes))
+
+
+metacolors<-colorRampPalette(brewer.pal(4, "Greens")[3:4])
+metagenes<-rownames(res_Lko_High_toPlot[res_Lko_High_toPlot$Term %like% "catabol" | res_Lko_High_toPlot$Term %like% "metabol" | res_Lko_High_toPlot$Term %like% "biosyn" ,])
+res_Lko_High_toPlot[metagenes,"colores"]<-metacolors(length(metagenes))
+
+
+sensorycolors<-colorRampPalette(brewer.pal(4, "Purples")[3:4])
+sensorygenes<-rownames(res_Lko_High_toPlot[res_Lko_High_toPlot$Term %like% "sensory" | res_Lko_High_toPlot$Term %like% "perception"| res_Lko_High_toPlot$Term %like% "neuro",])
+res_Lko_High_toPlot[sensorygenes,"colores"]<-sensorycolors(length(sensorygenes))
+
+res_Lko_High_toPlot[is.na(res_Lko_High_toPlot$colores),"colores"]<-"darkgrey"
+
+## add whole Term
+library(GO.db )
+res_Lko_High_toPlot$LonTerm<-Term(res_Lko_High_toPlot$GO.ID)
+
+
+set.seed(42)
+Lko_High_Cloud<-ggplot(
+    res_Lko_High_toPlot,
+    aes(
+      label = strmultline(LonTerm, ratio = 0.4 ), 
+      size = Significant/Annotated
+    )
+  ) +
+    geom_text_wordcloud_area(colour = res_Lko_High_toPlot$colores) +
+    scale_size_area() +
+    theme_minimal()+
+    ggtitle("Lko - High CpG")
+     
+#Lko_High_Cloud
+
+```
+# Compare
+
+```{r, compare, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE, fig.width=10}
+library(gridExtra)
+grid.arrange(Bimodal_Gbi+ggtitle("Gryllus bimaculatis"), Bimodal_Lko+ggtitle("Laupala kohalensis"), ncol=2)
+
+```
+
+ GO terms significantly (pval<0.05) overepresented on genes with **low/high CpGoe**  in Gbi and Lko using TopGO-weight0 and Fisher test. GO-term size as proportion of the GO-term within subset. 
+
+Color code base on the "words" present in the term:
+  * **Red shade:** Transcription Functions. *(GO terms with words: "RNA" &  "transcription")*.
+  * **Blue shade:** DNA and Epigenetics *(GO terms with words: "DNA", "repair", "nucleotide", "histone"  & "methylation")*.
+  * **Orange shade:** Proteins. *(GO terms with words: "protein" , "translation  & "ribosome")*.
+  * **Green shade:** Metabolism/Catabolism. *(GO terms with words: "Metabolism" ,"Catabolism"  & "biosynthesis")*.
+  * **Purple shade:** Sensory/Neurological. *(GO terms with words: "sensory", "perception" &  "neureo")*.
+  * **Gray:** Others.
+
+
+```{r, compare2, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE, fig.width=15, fig.height=15}
+library(gridExtra)
+#grid.arrange(Gbi_Low_Cloud, Lko_Low_Cloud,Gbi_High_Cloud,Lko_High_Cloud, ncol=2)
+Gbi_Low_Cloud
+Lko_Low_Cloud 
+Gbi_High_Cloud
+Lko_High_Cloud
+```
+
+
+
+## Gbi vs Lko
+
+I will use the 5.728 1-to-1 orthologous between Gbi and Lko, and check how many are in the same peak of high/low CpG.
+
+
+Orthologous list obtained at: *data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/Analysis_R/OrthoFInder_results_v2.2.rmd*
+
+But later, when doing dN/dS, for each OG I got the Gene ID of the Gbi and Lko genes: *https://localhost:8888/notebooks/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/dNdS_Gbi_Lko/1-Gbi_Lko_dNdS.ipynb*
+
+
+```{r, loadorthologs, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE, fig.width=15, fig.height=15}
+OrthologList<-read.csv("/home/guillem/data_disk/Cricket_genome_annotation/Comparative_Genomics_V2/dNdS_Gbi_Lko/Omega_Gbi_Lko_df.csv", sep="\t")
+head(OrthologList)
+dim(OrthologList)
+```
+
+Add if the Gbi and Lko gene is in high or low peak:
+
+```{r, addhighlow, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE, fig.width=15, fig.height=15}
+
+OrthologList_CpG_0<-merge(OrthologList, freqs_tableGbi_2, all.x=TRUE, by.x="Gbi_Name",by.y=0)
+OrthologList_CpG<-merge(OrthologList_CpG_0, freqs_tableLko_2, all.x=TRUE, by.x="Lko_Name",suffixes=c("_Gbi","_Lko"), by.y=0)
+
+head(OrthologList_CpG)
+```
+
+Now I can check the overlap:
+
+```{r, COmpare_cph_lkogbi, echo=TRUE, include=TRUE, cache=TRUE, warning=FALSE, message = FALSE, fig.width=6, fig.height=6}
+
+
+OrthologList_CpG$CpGCompare<-paste(OrthologList_CpG$CpGoe_level_Gbi, OrthologList_CpG$CpGoe_level_Lko, sep="_")
+table(OrthologList_CpG$CpGCompare)
+barplot(table(OrthologList_CpG$CpGCompare))
+```
+
+
+```{r, UpsetR1, echo=FALSE, results=FALSE, cache=TRUE, fig.width = 8, fig.height=8}
+library("UpSetR")
+
+OrthologList_CpG_upset<-OrthologList_CpG[,c("Lko_Name","Gbi_Name","CpGoe_level_Lko", "CpGoe_level_Gbi" )]
+  
+OrthologList_CpG_upset$Lko_LowCpGoe<-ifelse(OrthologList_CpG_upset$CpGoe_level_Lko=="Low", 1,0)
+OrthologList_CpG_upset$Gbi_LowCpGoe<-ifelse(OrthologList_CpG_upset$CpGoe_level_Gbi=="Low", 1,0)
+OrthologList_CpG_upset$Lko_HighCpGoe<-ifelse(OrthologList_CpG_upset$CpGoe_level_Lko=="High", 1,0)
+OrthologList_CpG_upset$Gbi_HighCpGoe<-ifelse(OrthologList_CpG_upset$CpGoe_level_Gbi=="High", 1,0)
+
+
+head(OrthologList_CpG_upset)
+
+
+
+upset(OrthologList_CpG_upset[,5:7], order.by = "freq", sets.bar.color = "darkgrey")
+
+
+```
+
+Is there any relation between CpGoe and the dN/dS??
+
+```{r, CpG_vs_dnds_plots, include=TRUE, echo=FALSE, results=FALSE, cache=TRUE, fig.width = 20, fig.height=8}
+
+boxplot1 <- ggplot(OrthologList_CpG, aes(x=CpGCompare, y=Omega)) + 
+  geom_violin()+
+  geom_boxplot(width=0.1) 
+
+
+
+## reduce to High/high and low/low
+OrthologList_CpG_2categories<-OrthologList_CpG[OrthologList_CpG$CpGCompare=="High_High" |OrthologList_CpG$CpGCompare=="Low_Low", ]
+
+boxplot2 <- ggplot(OrthologList_CpG_2categories, aes(x=CpGCompare, y=Omega)) + 
+  geom_violin()+
+  geom_boxplot(width=0.1) 
+boxplot2
+
+boxplot3 <- ggplot(OrthologList_CpG_2categories, aes(x=CpGCompare, y=Omega)) + 
+  ylim(0,0.35)+
+  geom_boxplot(outlier.shape=NA) 
+
+boxplot4 <- ggplot(OrthologList_CpG_2categories, aes(x=CpGCompare, y=log(Omega))) +
+  geom_violin()+
+  geom_boxplot(width=0.1)
+
+
+grid.arrange(boxplot1, boxplot2, boxplot3,boxplot4, ncol=4)
+
+```
+
+Statistical test for comapring the distributions:
+
+```{r, CpG_vs_dnds_stats, echo=TRUE, results=TRUE, cache=TRUE, fig.width = 8, fig.height=8}
+
+
+summary(OrthologList_CpG_2categories[OrthologList_CpG_2categories$CpGCompare=="High_High", "Omega" ])
+#hist(OrthologList_CpG_2categories[OrthologList_CpG_2categories$CpGCompare=="High_High", "Omega" ],breaks=200)
+summary(OrthologList_CpG_2categories[OrthologList_CpG_2categories$CpGCompare=="Low_Low", "Omega" ])
+#hist(OrthologList_CpG_2categories[OrthologList_CpG_2categories$CpGCompare=="Low_Low", "Omega" ],breaks=200)
+
+
+
+ggplot(OrthologList_CpG_2categories,aes(x=Omega, fill =CpGCompare )) + 
+     geom_histogram( bins = 1000) 
+   
+
+## Normality test for both distributions:
+## are the distributions significantly different from normal?
+shapiro.test(OrthologList_CpG_2categories[OrthologList_CpG_2categories$CpGCompare=="High_High", "Omega" ])
+shapiro.test(OrthologList_CpG_2categories[OrthologList_CpG_2categories$CpGCompare=="Low_Low", "Omega" ])
+## Both are nto notmal. NO t-test: t.test(Omega ~ CpGCompare, data=OrthologList_CpG_2categories, var.equal=TRUE) 
+
+## Are variances equal?
+#bartlett.test(Omega ~ CpGCompare, data=OrthologList_CpG_2categories)
+#var.test(Omega ~ CpGCompare, data=OrthologList_CpG_2categories)
+
+
+wilcox.test(Omega ~ CpGCompare, data=OrthologList_CpG_2categories) 
+
+
+
+```
+
+Linear model to see hor CpG explains loe dNdS?
+
+```{r, lm1, echo=TRUE, results=TRUE, cache=TRUE, fig.width = 8, fig.height=8}
+
+summary(lm(CpG.oe_Gbi ~ Omega, data=OrthologList_CpG_2categories) )
+summary(lm(CpG.oe_Lko ~ Omega, data=OrthologList_CpG_2categories) )
+
+
+Orthologs_lowlow<-OrthologList_CpG_2categories[OrthologList_CpG_2categories$CpGCompare=="Low_Low", ]
+summary(lm(CpG.oe_Gbi ~ Omega, data=Orthologs_lowlow) )
+summary(lm(CpG.oe_Lko ~ Omega, data=Orthologs_lowlow))
+
+
+Orthologs_highhigh<-OrthologList_CpG_2categories[OrthologList_CpG_2categories$CpGCompare=="High_High", ]
+summary(lm(CpG.oe_Gbi ~ Omega, data=Orthologs_highhigh) )
+summary(lm(CpG.oe_Lko ~ Omega, data=Orthologs_highhigh) )
+
+
+#### using high/low for each, NOT high-high or low-low
+
+
+Orthologs_Gbilow<-OrthologList_CpG[OrthologList_CpG$CpGoe_level_Gbi=="Low", ]
+summary(lm(CpG.oe_Gbi ~ Omega, data=Orthologs_Gbilow) )
+
+Orthologs_Lkolow<-OrthologList_CpG[OrthologList_CpG$CpGoe_level_Lko=="Low", ]
+summary(lm(CpG.oe_Lko ~ Omega, data=Orthologs_Lkolow))
+
+Orthologs_Gbihigh<-OrthologList_CpG[OrthologList_CpG$CpGoe_level_Gbi=="High", ]
+summary(lm(CpG.oe_Gbi ~ Omega, data=Orthologs_Gbihigh) )
+
+Orthologs_Lkohigh<-OrthologList_CpG[OrthologList_CpG$CpGoe_level_Lko=="High", ]
+summary(lm(CpG.oe_Lko ~ Omega, data=Orthologs_Lkohigh))
+
+
+
+
+```
+
+
+Simple correlation test:
+
+```{r, lm1, echo=TRUE, results=TRUE, cache=TRUE, fig.width = 8, fig.height=8}
+## Spearman
+### Gbi
+cor.test(OrthologList_CpG_2categories$CpG.oe_Gbi, OrthologList_CpG_2categories$Omega, method="spearman" )
+### Lko
+cor.test(OrthologList_CpG_2categories$CpG.oe_Lko, OrthologList_CpG_2categories$Omega, method="spearman" )
+
+cor.test(Orthologs_Gbilow$CpG.oe_Gbi, Orthologs_Gbilow$Omega , method="spearman" )
+cor.test(Orthologs_lowlow$CpG.oe_Gbi, Orthologs_lowlow$Omega , method="spearman" )
+
+cor.test(Orthologs_Lkolow$CpG.oe_Lko, Orthologs_Lkolow$Omega , method="spearman" )
+cor.test(Orthologs_lowlow$CpG.oe_Lko, Orthologs_lowlow$Omega , method="spearman" )
+
+Orthologs_highhigh
+
+cor.test(Orthologs_Gbihigh$CpG.oe_Gbi, Orthologs_Gbihigh$Omega , method="spearman" )
+cor.test(Orthologs_highhigh$CpG.oe_Gbi, Orthologs_highhigh$Omega , method="spearman" )
+
+cor.test(Orthologs_Lkohigh$CpG.oe_Lko, Orthologs_Lkohigh$Omega , method="spearman" )
+cor.test(Orthologs_highhigh$CpG.oe_Lko, Orthologs_highhigh$Omega , method="spearman" )
+
+```
+
+
