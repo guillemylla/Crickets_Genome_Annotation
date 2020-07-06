@@ -3,8 +3,8 @@ title: "CpGoe Multiple species"
 author: "Guillem Ylla"
 date: "11/26/2019"
 output:
-  github_document:
-        html_preview: false
+  html_document: default
+  pdf_document: default
 ---
 
 
@@ -52,7 +52,7 @@ CpGoe_insects<-CpGoe_insects[!is.na(CpGoe_insects$CpGoe),]
 Plot the CpG distribution for all 16 insects:
 
 ```{r, CpG,  include=TRUE, cache=TRUE, warning=FALSE, message = FALSE}
-  CGoe_plot1<-ggplot(CpGoe_insects, aes(x=CpGoe,  y = ..density.. )) + 
+CGoe_plot1<-ggplot(CpGoe_insects, aes(x=CpGoe,  y = ..density.. )) + 
    facet_wrap(~Spp)+
    geom_histogram(bins=1000)+
    scale_x_continuous(name = "CpGo/e") +
