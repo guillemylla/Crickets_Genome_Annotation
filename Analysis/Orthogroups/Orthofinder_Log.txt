@@ -1,0 +1,26 @@
+2019-07-30 23:15:46 : Started OrthoFinder version 2.3.3
+Command Line: /opt/OrthoFinder-2.3.3/orthofinder -t 16 -a 8 -f Orthofinder_input_output/V2.2
+
+WorkingDirectory_Base: /opt/Orthofinder_input_output/V2.2/OrthoFinder/Results_Jul30/WorkingDirectory/
+
+Species used: 
+0: Acyrthosiphon_pisum.fa
+1: Apis_mellifera.fa
+2: Blattella_germanica.fa
+3: Bombyx_mori.fa
+4: Cryptotermes_secundus.fa
+5: Drosophila_melanogaster.fa
+6: Frankliniella_occidentalis.fa
+7: Gryllus_bimaculatus.fa
+8: Laodelphax_striatella.fa
+9: Laupala_kohalensis.fa
+10: Locusta_migratoria.fa
+11: Nilaparvata_lugens.fa
+12: Pediculus_humanus.fa
+13: Sipha_flava.fa
+14: Tribolium_castaneum.fa
+15: Zootermopsis_nevadensis.fa
+
+FN_Orthogroups: /opt/Orthofinder_input_output/V2.2/OrthoFinder/Results_Jul30/WorkingDirectory/clusters_OrthoFinder_I1.5.txt_id_pairs.txt
+WorkingDirectory_Trees: /opt/Orthofinder_input_output/V2.2/OrthoFinder/Results_Jul30/WorkingDirectory/
+2019-07-31 00:35:24 : OrthoFinder run completed
