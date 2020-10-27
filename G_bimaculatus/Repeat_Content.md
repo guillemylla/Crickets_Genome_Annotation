@@ -103,7 +103,7 @@ pwd; hostname; date
 
 The installation of MITE is described for the annotation of V2.
  
- ```bash
+```bash
 #!/bin/sh
 #SBATCH --job-name=MiteTracker    # Job name
 #SBATCH --mail-type=ALL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
@@ -138,7 +138,6 @@ GenomeFasta="~/Gbimaculatus_Gap_filled.fasta"
 
 python -m MITETracker.py -g $GenomeFasta -w 10 -j GbiV3_Mitetracker
 
-echo "result should be at: /n/home09/gylla/Software/MITE-Tracker/results"
 
 source deactivate
 
@@ -148,11 +147,8 @@ pwd; hostname; date
 
 ```
  
-Collect the results:
 
-```bash
-cp /n/home09/gylla/Software/MITE-Tracker/results/GbiV3_Mitetracker/all.fasta .
-```
+
  
 ### 3. RepeatModeler
 
@@ -439,9 +435,7 @@ sed -i 's/>//g' UnknownIdslist.txt
 #get unknowns fasta
 faSomeRecords CombinedLibrary.lib.minlen50.nr.classified.fa UnknownIdslist.txt UnknownRepeats.fasta
  
-#prepare uniprot database
-# I previously downlaoded the database (v1)
-cp -r /n/regal/extavour_lab/gylla/Annotation_v1/Repetitive_content/Custom_library_v1/FilterDb/UniprotSeqs/ .
+# prepare uniprot database
 #makeblastdb -in UniprotSeqs/uniprot-reviewed%3Ayes+taxonomy%3A50557.fasta  -dbtype prot
  
  

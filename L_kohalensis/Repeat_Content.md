@@ -248,7 +248,7 @@ cd ~/Laupala_kohalensis_annotation/Repetitive_content/Custom_library_lko
 
  module load RepeatMasker/4.0.5-fasrc05
 # Extract taxon-specific repeats from RepeatMasker database (RepBase)
-#perl /n/helmod/apps/centos7/Core/RepeatMasker/4.0.5-fasrc05/util/queryRepeatDatabase.pl -clade insecta  > MakeRepeatBaseInsecta.fa
+#perl queryRepeatDatabase.pl -clade insecta  > MakeRepeatBaseInsecta.fa
 cp ~/Annotation_v1/Repetitive_content/Custom_library_v1/MakeRepeatBaseInsecta_2.fa  .
 ## LTRdigest (after LTRharvest)
 cp ../LTRs/Lko_LtrDigest_complete.fas LtrDigest_lko.lib
