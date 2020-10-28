@@ -1,11 +1,11 @@
 # Crickets Genome Annotation Scripts
 
-![pubstatus](https://img.shields.io/badge/Publication:-Uner_review-orange)
+![pubstatus](https://img.shields.io/badge/Publication:-Under_review-orange)
 
 --------------
 
 - Scripts author: [Guillem Ylla](https://guillemylla.github.io/)
-- Publication: [**"Cricket genomes: the genomes of future food"**]()
+- Preprint: [**"Cricket genomes: the genomes of future food"**]()
 
 ------
 
