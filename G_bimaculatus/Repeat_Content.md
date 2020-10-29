@@ -241,32 +241,11 @@ sbatch --array=0-9  run_TransposonPSI.sbatch
 ```
 
 
-The file *GbiV3_part09.fa* run out of time..  I can't continuie from where it got interrupted... I split and re-run...
-
- ```bash
-srun -p test --pty --mem 5gb -n 2 -N 1 -t 0-06:00 /bin/bash
-module load ucsc/20150820-fasrc01
-
-cd ~/TransposonPSI/GbiV3_splitted
-faSplit sequence GbiV3_part09.fa  10 GbiV3_part09_repart
-
-```
-Re run the GbiV3_part09.fa parted in 10...
-
-```bash
-##from 00 to 09
- sbatch --array=0-9 run_TransposonPSI_part09reparted.sbatch
- ```
-
-
 
 
  When it finishes, I collect results, transform to gff3 and get fasta
  
  ```bash
-ls -lah  *.fa.TPSI.allHits
-ls -lah  *.fa.TPSI.allHits | wc -l
-#19 files : 00 to 08 (9 files) + 00 to 09 (10 files)
 
 cat *.fa.TPSI.allHits > GbiV3_joinparts.fa.TPSI.allHits
 wc -l  GbiV3_joinparts.fa.TPSI.allHits
