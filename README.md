@@ -5,8 +5,8 @@
 --------------
 
 - Scripts author: [Guillem Ylla](https://guillemylla.github.io/)
-- Preprint: [**"Cricket genomes: the genomes of future food"**]()
-
+- Preprint: [**"Insights into the genomic evolution of insects from cricket genomes"**](https://www.biorxiv.org/content/10.1101/2020.07.07.191841v2)
+- Genome database: https://gbimaculatusgenome.rc.fas.harvard.edu 
 ------
 
 This repository includes:
@@ -36,4 +36,5 @@ This repository includes:
 ![G. bimaculatus pipline](G_bimaculatus/Supplementary_Figure_1_PipelineGbi.png)
 
 
-- Please cite:
+- Please cite: 
+- Preprint citation: Ylla, et al. (2020). Insights into the genomic evolution of insects from cricket genomes. bioRxiv. https://doi.org/10.1101/2020.07.07.191841
