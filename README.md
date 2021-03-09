@@ -15,7 +15,7 @@ This repository includes:
 	- [*Gryllus bimaculatus*](G_bimaculatus)
 	- [*Laupala kohalensis*](L_kohalensis)
 2. The [Analysis directory](Analysis) contains the scripts used to analyze these genomes and generate the results shown  publication.
-3. The [Annotation_files](Annotation_files) contain the annotations (gff3 files) for *G. bimaculatus* and *L. kohalensis*
+3. The [Annotation_files direcotry](Annotation_files)  contains the annotations (gff3 files) for *G. bimaculatus* and *L. kohalensis*
 
 -----
 
