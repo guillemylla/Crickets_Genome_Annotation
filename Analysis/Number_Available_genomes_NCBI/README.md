@@ -7,7 +7,7 @@
 - Date: March 2021
 -----------
 
-- Obtain Number of available genomes each of the 15 hemimetabolous orders + in all hemimetabolous
+- Obtain Number of available genomes each of the 15 hemimetabolous orders + in all endopterygota (holometabolous)
 
 - [Lits of hemimetabolous orders](Hemimetabolous_orders.txt) obtained from the book ["Insect Metamorphosis"](https://www.elsevier.com/books/insect-metamorphosis/belles/978-0-12-813020-9) by Xavier Belles.
 
