@@ -11,9 +11,8 @@
 
 - [Lits of hemimetabolous orders](Hemimetabolous_orders.txt) obtained from the book ["Insect Metamorphosis"](https://www.elsevier.com/books/insect-metamorphosis/belles/978-0-12-813020-9) by Xavier Belles.
 
-- Based on [my previous script](https://github.com/guillemylla/Number_genomes_available_in_NCBI).
-
 - Check the [Jupyter Notebook](Get_Available_Genomes_by_lienage.ipynb) for script + results.
+	- Notebook based on my other repository [Number_genomes_available_in_NCBI](https://github.com/guillemylla/Number_genomes_available_in_NCBI/blob/main/Get_Available_Genomes_by_Taxon.ipynb)
 
 ### Results sumamry as for March 2021 
 
