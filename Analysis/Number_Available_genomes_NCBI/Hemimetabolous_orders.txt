@@ -1,0 +1,17 @@
+superorders	orders
+Palaeoptera	Odonata
+Palaeoptera	Ephemeroptera
+Polyneoptera	Plecoptera
+Polyneoptera	Dermaptera
+Polyneoptera	Orthoptera
+Polyneoptera	Zoraptera
+Polyneoptera	Mantodea
+Polyneoptera	Blattodea
+Polyneoptera	Mantophasmatodea
+Polyneoptera	Grylloblattodea
+Polyneoptera	Phasmatodea
+Polyneoptera	Embiodea
+Paraneopter	Psocoptera
+Paraneopter	Phthiraptera
+Paraneopter	Thysanoptera
+Paraneopter	Hemiptera
