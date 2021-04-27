@@ -3,8 +3,7 @@
 
 ![pubstatus](https://img.shields.io/badge/Publication:-Under_review-orange)
 
-![DOI](https://zenodo.org/badge/243057984.svg)
-
+[![DOI](https://zenodo.org/badge/243057984.svg)](https://zenodo.org/badge/latestdoi/243057984)
 
 
 
