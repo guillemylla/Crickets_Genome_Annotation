@@ -1,7 +1,7 @@
 # Crickets Genome Annotation Scripts
 
 ![pubstatus](https://img.shields.io/badge/Publication:-Under_review-orange)
-![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4648022.svg)]
+![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4648022.svg)
 
 
 
