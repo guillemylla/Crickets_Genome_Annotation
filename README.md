@@ -47,4 +47,5 @@ This repository includes:
 
 
 - Please cite: 
-- Ylla, G., Nakamura, T., Itoh, T. et al. Insights into the genomic evolution of insects from cricket genomes. *Commun Biol* 4, 733 (2021). https://doi.org/10.1038/s42003-021-02197-9
+
+Ylla, G., Nakamura, T., Itoh, T. et al. Insights into the genomic evolution of insects from cricket genomes. *Commun Biol* 4, 733 (2021). https://doi.org/10.1038/s42003-021-02197-9
