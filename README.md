@@ -1,4 +1,4 @@
-# Crickets Genome Annotation Scripts
+# Crickets Genome Annotation
 
 
 ![pubstatus](https://img.shields.io/badge/Article_Status:-Published-green)
