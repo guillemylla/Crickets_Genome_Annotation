@@ -1,7 +1,7 @@
 # Crickets Genome Annotation Scripts
 
 
-![pubstatus](https://img.shields.io/badge/Publication:-Under_review-orange)
+![pubstatus](https://img.shields.io/badge/Article_Status:-Published-green)
 
 [![DOI](https://zenodo.org/badge/243057984.svg)](https://zenodo.org/badge/latestdoi/243057984)
 
@@ -14,7 +14,7 @@
 --------------
 
 - Scripts author: [Guillem Ylla](https://guillemylla.github.io/)
-- Preprint: [**"Insights into the genomic evolution of insects from cricket genomes"**](https://www.biorxiv.org/content/10.1101/2020.07.07.191841v2)
+- Article: [**"Insights into the genomic evolution of insects from cricket genomes"**](https://www.nature.com/articles/s42003-021-02197-9)
 - Genome database: https://gbimaculatusgenome.rc.fas.harvard.edu 
 ------
 
@@ -47,4 +47,4 @@ This repository includes:
 
 
 - Please cite: 
-- Preprint citation: Ylla, et al. (2020). Insights into the genomic evolution of insects from cricket genomes. bioRxiv. https://doi.org/10.1101/2020.07.07.191841
+- Ylla, G., Nakamura, T., Itoh, T. et al. Insights into the genomic evolution of insects from cricket genomes. *Commun Biol* 4, 733 (2021). https://doi.org/10.1038/s42003-021-02197-9
